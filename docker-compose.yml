@@ -1,0 +1,225 @@
+version: '3.8'
+
+services:
+  # Redis - Job Queue and Cache
+  redis:
+    image: redis:7-alpine
+    container_name: botrix-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - botrix-network
+    restart: unless-stopped
+
+  # PostgreSQL - Main Database (Optional - can use SQLite instead)
+  postgres:
+    image: postgres:15-alpine
+    container_name: botrix-postgres
+    environment:
+      POSTGRES_DB: botrix
+      POSTGRES_USER: botrix
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-botrix123}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./backend/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U botrix"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - botrix-network
+    restart: unless-stopped
+
+  # Go Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: botrix-backend
+    ports:
+      - "8080:8080"
+    environment:
+      # Server
+      PORT: 8080
+      ENV: production
+      
+      # Database
+      DB_DRIVER: ${DB_DRIVER:-sqlite}
+      DB_DSN: ${DB_DSN:-./data/botrix.db}
+      
+      # PostgreSQL (if using)
+      # DB_DRIVER: postgres
+      # DB_HOST: postgres
+      # DB_PORT: 5432
+      # DB_NAME: botrix
+      # DB_USER: botrix
+      # DB_PASSWORD: botrix123
+      
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    volumes:
+      - ./backend/data:/app/data
+      - ./backend/logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+      # Uncomment if using PostgreSQL
+      # postgres:
+      #   condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - botrix-network
+    restart: unless-stopped
+
+  # Python Worker - Account Creator
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: botrix-worker-1
+    environment:
+      # Redis
+      REDIS_URL: redis://redis:6379/0
+      
+      # Worker Config
+      WORKER_ID: worker-1
+      MAX_RETRIES: 3
+      HEALTH_CHECK_INTERVAL: 30
+      
+      # Logging
+      LOG_LEVEL: INFO
+      PYTHONUNBUFFERED: 1
+    volumes:
+      - ./workers:/app/workers
+      - ./shared:/app/shared
+      - ./logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c 'import redis; r=redis.from_url(\"redis://redis:6379/0\"); print(r.get(\"botrix:worker:health:worker-1\"))'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - botrix-network
+    restart: unless-stopped
+
+  # Additional workers for scaling (optional)
+  worker-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: botrix-worker-2
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      WORKER_ID: worker-2
+      MAX_RETRIES: 3
+      HEALTH_CHECK_INTERVAL: 30
+      LOG_LEVEL: INFO
+      PYTHONUNBUFFERED: 1
+    volumes:
+      - ./workers:/app/workers
+      - ./shared:/app/shared
+      - ./logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - botrix-network
+    restart: unless-stopped
+    profiles:
+      - scale  # Only start with --profile scale
+
+  worker-3:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: botrix-worker-3
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      WORKER_ID: worker-3
+      MAX_RETRIES: 3
+      HEALTH_CHECK_INTERVAL: 30
+      LOG_LEVEL: INFO
+      PYTHONUNBUFFERED: 1
+    volumes:
+      - ./workers:/app/workers
+      - ./shared:/app/shared
+      - ./logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - botrix-network
+    restart: unless-stopped
+    profiles:
+      - scale
+
+  # Redis Commander - Web UI for Redis (development only)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: botrix-redis-commander
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - botrix-network
+    profiles:
+      - dev  # Only start with --profile dev
+
+  # pgAdmin - PostgreSQL Web UI (development only)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: botrix-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@botrix.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - botrix-network
+    profiles:
+      - dev
+
+volumes:
+  redis-data:
+    driver: local
+  postgres-data:
+    driver: local
+
+networks:
+  botrix-network:
+    driver: bridge

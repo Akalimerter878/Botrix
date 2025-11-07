@@ -1,0 +1,56 @@
+[Unit]
+Description=Botrix Worker Daemon - Account Creation Worker
+After=network.target redis.service
+Wants=redis.service
+
+[Service]
+Type=simple
+User=botrix
+Group=botrix
+WorkingDirectory=/opt/botrix
+
+# Environment
+Environment="REDIS_URL=redis://localhost:6379/0"
+Environment="MAX_RETRIES=3"
+Environment="HEALTH_CHECK_INTERVAL=30"
+Environment="PYTHONUNBUFFERED=1"
+
+# Load environment from file
+EnvironmentFile=-/etc/botrix/worker.env
+
+# Start worker
+ExecStart=/opt/botrix/venv/bin/python3 -m workers.worker_daemon \
+    --worker-id worker-%i \
+    --redis-url ${REDIS_URL} \
+    --max-retries ${MAX_RETRIES} \
+    --health-check-interval ${HEALTH_CHECK_INTERVAL}
+
+# Restart policy
+Restart=always
+RestartSec=10
+StartLimitInterval=300
+StartLimitBurst=5
+
+# Resource limits
+MemoryLimit=512M
+CPUQuota=50%
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/botrix/logs /opt/botrix/data
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=botrix-worker-%i
+
+# Graceful shutdown
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target

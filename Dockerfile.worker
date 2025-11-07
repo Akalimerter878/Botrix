@@ -1,0 +1,45 @@
+# Python Worker Dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY workers/ ./workers/
+COPY shared/ ./shared/
+
+# Create directories
+RUN mkdir -p /app/logs /app/data
+
+# Health check script
+RUN echo '#!/bin/sh\npython3 -c "import redis; r=redis.from_url(\"${REDIS_URL}\"); r.ping()"' > /usr/local/bin/healthcheck.sh && \
+    chmod +x /usr/local/bin/healthcheck.sh
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD /usr/local/bin/healthcheck.sh
+
+# Run as non-root user
+RUN useradd -m -u 1000 botrix && \
+    chown -R botrix:botrix /app
+
+USER botrix
+
+# Set Python path
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
+# Run worker daemon
+CMD ["python3", "-m", "workers.worker_daemon"]

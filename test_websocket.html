@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Botrix WebSocket Test Client</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .status-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+        }
+
+        .status-indicator {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background: #10b981;
+        }
+
+        .status-indicator.disconnected {
+            background: #ef4444;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-connect {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-disconnect {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-clear {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-send {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            opacity: 0.9;
+        }
+
+        .messages-container {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .message {
+            margin-bottom: 12px;
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+            background: white;
+        }
+
+        .message-time {
+            color: #6b7280;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+
+        .message-content {
+            color: #1f2937;
+        }
+
+        .message.job-update {
+            border-left-color: #10b981;
+        }
+
+        .message.system {
+            border-left-color: #f59e0b;
+            background: #fffbeb;
+        }
+
+        .message.error {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .test-job-form {
+            display: grid;
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #374151;
+        }
+
+        input, select, textarea {
+            padding: 10px;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .job-type-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .job-type-btn {
+            padding: 10px;
+            background: #f3f4f6;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .job-type-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Botrix WebSocket Real-Time Monitor</h1>
+        
+        <div class="grid">
+            <!-- Connection Panel -->
+            <div class="card">
+                <h2>Connection</h2>
+                
+                <div class="status-panel">
+                    <div class="status">
+                        <div class="status-indicator" id="statusIndicator"></div>
+                        <span id="statusText">Disconnected</span>
+                    </div>
+                    <span id="uptime">00:00:00</span>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-connect" onclick="connect()">Connect</button>
+                    <button class="btn-disconnect" onclick="disconnect()">Disconnect</button>
+                    <button class="btn-clear" onclick="clearMessages()">Clear Log</button>
+                </div>
+
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="messagesReceived">0</div>
+                        <div class="stat-label">Messages</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="jobUpdates">0</div>
+                        <div class="stat-label">Job Updates</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="errors">0</div>
+                        <div class="stat-label">Errors</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="wsUrl">WebSocket URL</label>
+                    <input type="text" id="wsUrl" value="ws://localhost:8080/ws" placeholder="ws://localhost:8080/ws">
+                </div>
+            </div>
+
+            <!-- Test Job Panel -->
+            <div class="card">
+                <h2>Test Job Creation</h2>
+                
+                <div class="test-job-form">
+                    <div class="form-group">
+                        <label>Job Status</label>
+                        <div class="job-type-selector">
+                            <div class="job-type-btn active" onclick="selectJobType('processing')">Processing</div>
+                            <div class="job-type-btn" onclick="selectJobType('completed')">Completed</div>
+                            <div class="job-type-btn" onclick="selectJobType('failed')">Failed</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="jobId">Job ID</label>
+                        <input type="text" id="jobId" placeholder="Auto-generated UUID" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="accountDetails">Account Data (JSON)</label>
+                        <textarea id="accountDetails" rows="4" placeholder='{"username": "test_user", "email": "test@example.com"}'></textarea>
+                    </div>
+
+                    <button class="btn-send" onclick="simulateJobUpdate()">Simulate Job Update</button>
+
+                    <div style="margin-top: 15px; padding: 12px; background: #fffbeb; border-radius: 6px; border-left: 4px solid #f59e0b;">
+                        <strong>Note:</strong> This sends a test message via Redis pub/sub. Make sure Redis is running and the Python worker is connected.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages Log -->
+        <div class="card" style="margin-top: 20px;">
+            <h2>Live Message Log</h2>
+            <div class="messages-container" id="messagesContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let messagesReceived = 0;
+        let jobUpdates = 0;
+        let errorCount = 0;
+        let connectionStartTime = null;
+        let uptimeInterval = null;
+        let selectedJobStatus = 'processing';
+
+        function connect() {
+            const url = document.getElementById('wsUrl').value;
+            
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                addMessage('Already connected', 'system');
+                return;
+            }
+
+            ws = new WebSocket(url);
+
+            ws.onopen = () => {
+                addMessage('✅ Connected to WebSocket server', 'system');
+                updateStatus(true);
+                connectionStartTime = Date.now();
+                startUptimeCounter();
+            };
+
+            ws.onmessage = (event) => {
+                messagesReceived++;
+                document.getElementById('messagesReceived').textContent = messagesReceived;
+
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === 'job_update') {
+                        jobUpdates++;
+                        document.getElementById('jobUpdates').textContent = jobUpdates;
+                        addMessage(formatJobUpdate(data), 'job-update');
+                    } else {
+                        addMessage(JSON.stringify(data, null, 2), 'message');
+                    }
+                } catch (e) {
+                    addMessage('Raw: ' + event.data, 'message');
+                }
+            };
+
+            ws.onerror = (error) => {
+                errorCount++;
+                document.getElementById('errors').textContent = errorCount;
+                addMessage('❌ WebSocket error occurred', 'error');
+                console.error('WebSocket error:', error);
+            };
+
+            ws.onclose = () => {
+                addMessage('🔌 Disconnected from server', 'system');
+                updateStatus(false);
+                stopUptimeCounter();
+            };
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+
+        function updateStatus(connected) {
+            const indicator = document.getElementById('statusIndicator');
+            const text = document.getElementById('statusText');
+
+            if (connected) {
+                indicator.classList.add('connected');
+                indicator.classList.remove('disconnected');
+                text.textContent = 'Connected';
+            } else {
+                indicator.classList.add('disconnected');
+                indicator.classList.remove('connected');
+                text.textContent = 'Disconnected';
+            }
+        }
+
+        function startUptimeCounter() {
+            uptimeInterval = setInterval(() => {
+                if (connectionStartTime) {
+                    const elapsed = Date.now() - connectionStartTime;
+                    const hours = Math.floor(elapsed / 3600000);
+                    const minutes = Math.floor((elapsed % 3600000) / 60000);
+                    const seconds = Math.floor((elapsed % 60000) / 1000);
+                    document.getElementById('uptime').textContent = 
+                        `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                }
+            }, 1000);
+        }
+
+        function stopUptimeCounter() {
+            if (uptimeInterval) {
+                clearInterval(uptimeInterval);
+                uptimeInterval = null;
+            }
+            document.getElementById('uptime').textContent = '00:00:00';
+        }
+
+        function addMessage(content, type = 'message') {
+            const container = document.getElementById('messagesContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            const time = new Date().toLocaleTimeString();
+            messageDiv.innerHTML = `
+                <div class="message-time">${time}</div>
+                <div class="message-content">${content}</div>
+            `;
+            
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function clearMessages() {
+            document.getElementById('messagesContainer').innerHTML = '';
+            messagesReceived = 0;
+            jobUpdates = 0;
+            errorCount = 0;
+            document.getElementById('messagesReceived').textContent = '0';
+            document.getElementById('jobUpdates').textContent = '0';
+            document.getElementById('errors').textContent = '0';
+        }
+
+        function formatJobUpdate(data) {
+            return `
+                <strong>Job Update</strong><br>
+                Job ID: ${data.job_id}<br>
+                Status: <span style="color: ${getStatusColor(data.status)}; font-weight: bold;">${data.status}</span><br>
+                ${data.data ? 'Data: ' + JSON.stringify(data.data, null, 2) : ''}
+            `;
+        }
+
+        function getStatusColor(status) {
+            switch(status) {
+                case 'completed': return '#10b981';
+                case 'failed': return '#ef4444';
+                case 'processing': return '#3b82f6';
+                default: return '#6b7280';
+            }
+        }
+
+        function selectJobType(type) {
+            selectedJobStatus = type;
+            document.querySelectorAll('.job-type-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        function simulateJobUpdate() {
+            const jobId = generateUUID();
+            document.getElementById('jobId').value = jobId;
+
+            let accountData = {};
+            const accountDetailsText = document.getElementById('accountDetails').value;
+            
+            if (accountDetailsText) {
+                try {
+                    accountData = JSON.parse(accountDetailsText);
+                } catch (e) {
+                    accountData = { note: accountDetailsText };
+                }
+            }
+
+            const message = {
+                job_id: jobId,
+                status: selectedJobStatus,
+                timestamp: Date.now(),
+                data: accountData
+            };
+
+            // Send to backend API to publish via Redis
+            fetch('http://localhost:8080/api/jobs/test-publish', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(message)
+            })
+            .then(response => {
+                if (response.ok) {
+                    addMessage(`📤 Test job update published (${selectedJobStatus})`, 'system');
+                } else {
+                    addMessage('❌ Failed to publish test update. Endpoint may not exist yet.', 'error');
+                }
+            })
+            .catch(error => {
+                addMessage(`❌ Error: ${error.message}. You can manually publish to Redis channel "botrix:jobs:updates"`, 'error');
+            });
+        }
+
+        // Auto-connect on page load
+        window.addEventListener('load', () => {
+            // Don't auto-connect, let user click connect
+            addMessage('👋 Welcome! Click Connect to start monitoring job updates.', 'system');
+        });
+    </script>
+</body>
+</html>
