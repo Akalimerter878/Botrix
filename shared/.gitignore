@@ -1,0 +1,4 @@
+# Ignore all files in shared/ except .gitignore and README
+*
+!.gitignore
+!README.md
