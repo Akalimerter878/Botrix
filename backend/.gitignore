@@ -29,7 +29,9 @@ vendor/
 
 # Logs
 *.log
-logs/
+logs/*
+!logs/.gitignore
+!logs/README.md
 
 # IDE specific files
 .vscode/
