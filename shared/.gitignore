@@ -1,4 +1,6 @@
-# Ignore all files in shared/ except .gitignore and README
-*
+# Ignore sensitive data files
+livelive.txt
+kicks.json
+*.txt
 !.gitignore
 !README.md
