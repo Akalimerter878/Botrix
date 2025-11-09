@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
@@ -20,8 +21,15 @@ const queryClient = new QueryClient({
 function App() {
   const { theme } = useTheme()
 
+  // Apply theme to HTML element
+  useEffect(() => {
+    const root = document.documentElement
+    root.classList.remove('light', 'dark')
+    root.classList.add(theme)
+  }, [theme])
+
   return (
-    <div className={theme}>
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <Layout>
@@ -37,9 +45,11 @@ function App() {
           position="top-right"
           toastOptions={{
             duration: 4000,
+            className: 'bg-card text-foreground border border-border',
             style: {
-              background: theme === 'dark' ? '#1f2937' : '#ffffff',
-              color: theme === 'dark' ? '#f9fafb' : '#111827',
+              background: 'hsl(var(--card))',
+              color: 'hsl(var(--foreground))',
+              border: '1px solid hsl(var(--border))',
             },
           }}
         />
