@@ -108,3 +108,72 @@
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
+
+/* Form elements styling */
+/* Checkboxes */
+input[type="checkbox"] {
+  @apply appearance-none cursor-pointer;
+  width: 1rem;
+  height: 1rem;
+  border-width: 2px;
+  border-radius: 0.25rem;
+}
+
+input[type="checkbox"]:checked {
+  background-color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+input[type="checkbox"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--ring));
+}
+
+/* Radio buttons */
+input[type="radio"] {
+  @apply appearance-none cursor-pointer;
+  width: 1rem;
+  height: 1rem;
+  border-width: 2px;
+  border-radius: 50%;
+}
+
+input[type="radio"]:checked {
+  background-color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  background-image: radial-gradient(circle, white 40%, transparent 40%);
+}
+
+input[type="radio"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--ring));
+}
+
+/* Toggle switches */
+.toggle-switch {
+  @apply relative inline-flex h-8 w-14 items-center rounded-full transition-colors cursor-pointer;
+}
+
+.toggle-switch-ball {
+  @apply inline-block h-6 w-6 transform rounded-full transition-transform;
+  background-color: hsl(var(--foreground));
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Select dropdowns */
+select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
+
+.dark select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%26d4d4d8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+}
+

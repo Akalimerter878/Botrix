@@ -199,9 +199,10 @@ export default function Settings() {
           >
             <span
               className={`
-                inline-block h-6 w-6 transform rounded-full bg-white transition-transform
+                inline-block h-6 w-6 transform rounded-full bg-foreground transition-transform
                 ${theme === 'dark' ? 'translate-x-7' : 'translate-x-1'}
               `}
+              style={{ boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)' }}
             />
           </button>
         </div>
