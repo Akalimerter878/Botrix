@@ -258,7 +258,7 @@ export default function Dashboard() {
 
           <div className="p-3 bg-primary/10 border border-primary/30 rounded-lg">
             <p className="text-sm text-primary">
-              This will create {accountCount} TikTok accounts using the email pool.
+              This will create {accountCount} Kick.com accounts using the email pool.
             </p>
           </div>
 

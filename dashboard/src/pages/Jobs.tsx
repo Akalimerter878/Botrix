@@ -280,7 +280,7 @@ export default function Jobs() {
 
           <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
             <p className="text-sm text-blue-400">
-              This will create {accountCount} TikTok accounts using the email pool.
+              This will create {accountCount} Kick.com accounts using the email pool.
               {testMode && ' Test mode: No real accounts will be created.'}
             </p>
           </div>

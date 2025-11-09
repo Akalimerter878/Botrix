@@ -131,7 +131,7 @@ export default function Accounts() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-foreground">Accounts</h1>
-        <p className="text-muted-foreground mt-2">Manage your TikTok accounts</p>
+        <p className="text-muted-foreground mt-2">Manage your Kick.com accounts</p>
       </div>
 
       {/* Actions Bar */}
