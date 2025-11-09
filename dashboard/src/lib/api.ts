@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios from 'axios';
 import type {
   Account,
   Job,
@@ -7,63 +7,105 @@ import type {
   AccountsResponse,
   JobsResponse,
   PaginationParams,
-} from '@/types'
+} from '@/types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
-export const api = axios.create({
+const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
-})
+});
 
 // Request interceptor for logging
-api.interceptors.request.use(
+apiClient.interceptors.request.use(
   (config) => {
-    console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`)
-    return config
+    console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
+    return config;
   },
   (error) => {
-    return Promise.reject(error)
+    return Promise.reject(error);
   }
-)
+);
 
 // Response interceptor for error handling
-api.interceptors.response.use(
+apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    const message = error.response?.data?.error || error.message
-    console.error('API Error:', message)
-    return Promise.reject(error)
+    const message = error.response?.data?.error || error.message;
+    console.error('API Error:', message);
+    return Promise.reject(error);
   }
-)
+);
 
-// Health Check
-export const health = {
-  check: () => api.get('/health'),
-  ping: () => api.get('/ping'),
-}
+// API methods
+export const api = {
+  // Accounts
+  accounts: {
+    list: async (): Promise<Account[]> => {
+      const response = await apiClient.get<Account[]>('/api/accounts');
+      return response.data;
+    },
+    get: async (id: string): Promise<Account> => {
+      const response = await apiClient.get<Account>(`/api/accounts/${id}`);
+      return response.data;
+    },
+    create: async (data: CreateAccountRequest): Promise<Job> => {
+      const response = await apiClient.post<Job>('/api/accounts', data);
+      return response.data;
+    },
+    update: async (id: string, data: Partial<Account>): Promise<Account> => {
+      const response = await apiClient.put<Account>(`/api/accounts/${id}`, data);
+      return response.data;
+    },
+    delete: async (id: string): Promise<void> => {
+      await apiClient.delete(`/api/accounts/${id}`);
+    },
+    stats: async (): Promise<Stats> => {
+      const response = await apiClient.get<Stats>('/api/accounts/stats');
+      return response.data;
+    },
+  },
 
-// Accounts API
-export const accounts = {
-  list: (params?: PaginationParams) =>
-    api.get<AccountsResponse>('/api/accounts', { params }),
-  get: (id: string) => api.get<Account>(`/api/accounts/${id}`),
-  create: (data: CreateAccountRequest) => api.post<Job>('/api/accounts', data),
-  update: (id: string, data: Partial<Account>) =>
-    api.put<Account>(`/api/accounts/${id}`, data),
-  delete: (id: string) => api.delete(`/api/accounts/${id}`),
-  stats: () => api.get<Stats>('/api/accounts/stats'),
-}
+  // Jobs
+  jobs: {
+    list: async (): Promise<Job[]> => {
+      const response = await apiClient.get<Job[]>('/api/jobs');
+      return response.data;
+    },
+    get: async (id: string): Promise<Job> => {
+      const response = await apiClient.get<Job>(`/api/jobs/${id}`);
+      return response.data;
+    },
+    cancel: async (id: string): Promise<void> => {
+      await apiClient.post(`/api/jobs/${id}/cancel`);
+    },
+    stats: async (): Promise<Stats> => {
+      const response = await apiClient.get<Stats>('/api/jobs/stats');
+      return response.data;
+    },
+    generate: async (count: number, test?: boolean): Promise<Job> => {
+      const response = await apiClient.post<Job>('/api/accounts/generate', {
+        count,
+        test: test || false,
+      });
+      return response.data;
+    },
+  },
 
-// Jobs API
-export const jobs = {
-  list: () => api.get<JobsResponse>('/api/jobs'),
-  get: (id: string) => api.get<Job>(`/api/jobs/${id}`),
-  cancel: (id: string) => api.post(`/api/jobs/${id}/cancel`),
-  stats: () => api.get<Stats>('/api/jobs/stats'),
-}
+  // Health
+  health: {
+    check: async () => {
+      const response = await apiClient.get('/health');
+      return response.data;
+    },
+    ping: async () => {
+      const response = await apiClient.get('/ping');
+      return response.data;
+    },
+  },
+};
 
-export default api
+export default apiClient;
