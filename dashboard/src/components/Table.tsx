@@ -25,7 +25,7 @@ export function Table<T extends Record<string, any>>({
     return (
       <div className="w-full glass-panel rounded-lg p-8">
         <div className="flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </div>
       </div>
     );
@@ -34,7 +34,7 @@ export function Table<T extends Record<string, any>>({
   if (data.length === 0) {
     return (
       <div className="w-full glass-panel rounded-lg p-8">
-        <p className="text-center text-gray-400">{emptyMessage}</p>
+        <p className="text-center text-muted-foreground">{emptyMessage}</p>
       </div>
     );
   }
@@ -43,29 +43,29 @@ export function Table<T extends Record<string, any>>({
     <div className="w-full overflow-x-auto glass-panel rounded-lg">
       <table className="w-full">
         <thead>
-          <tr className="border-b border-gray-800">
+          <tr className="border-b border-border">
             {columns.map((column) => (
               <th
                 key={column.key}
-                className="px-6 py-4 text-left text-sm font-medium text-gray-400 uppercase tracking-wider"
+                className="px-6 py-4 text-left text-sm font-medium text-muted-foreground uppercase tracking-wider"
               >
                 {column.header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-800">
+        <tbody className="divide-y divide-border">
           {data.map((item, index) => (
             <tr
               key={index}
               onClick={() => onRowClick?.(item)}
               className={cn(
-                'hover:bg-gray-800/50 transition-colors',
+                'hover:bg-accent transition-colors',
                 onRowClick && 'cursor-pointer'
               )}
             >
               {columns.map((column) => (
-                <td key={column.key} className="px-6 py-4 text-sm text-gray-300">
+                <td key={column.key} className="px-6 py-4 text-sm text-foreground">
                   {column.render ? column.render(item) : item[column.key]}
                 </td>
               ))}

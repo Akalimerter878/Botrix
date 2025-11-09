@@ -63,18 +63,18 @@ export function FileUpload({
         className={cn(
           'border-2 border-dashed rounded-lg p-8 transition-colors cursor-pointer',
           isDragging
-            ? 'border-blue-500 bg-blue-500/10'
-            : 'border-gray-700 hover:border-gray-600 bg-gray-800/50'
+            ? 'border-primary bg-primary/10'
+            : 'border-border hover:border-muted-foreground bg-card'
         )}
       >
         <div className="flex flex-col items-center justify-center gap-2">
-          <Upload className="w-10 h-10 text-gray-400" />
+          <Upload className="w-10 h-10 text-muted-foreground" />
           <div className="text-center">
-            <p className="text-sm text-gray-300">
-              <span className="text-blue-500 font-medium">Click to upload</span> or
+            <p className="text-sm text-foreground">
+              <span className="text-primary font-medium">Click to upload</span> or
               drag and drop
             </p>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {accept} files up to {maxSize}MB
             </p>
           </div>
@@ -87,7 +87,7 @@ export function FileUpload({
           className="hidden"
         />
       </div>
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );
 }

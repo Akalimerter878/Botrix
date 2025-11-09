@@ -112,8 +112,8 @@ export default function Jobs() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Jobs</h1>
-          <p className="text-gray-400 mt-2">Monitor account creation jobs</p>
+          <h1 className="text-3xl font-bold text-foreground">Jobs</h1>
+          <p className="text-muted-foreground mt-2">Monitor account creation jobs</p>
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => refetch()}>
@@ -134,7 +134,7 @@ export default function Jobs() {
             isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'
           }`}
         />
-        <p className="text-sm text-gray-300">
+        <p className="text-sm text-foreground">
           {isConnected ? 'Real-time updates active' : 'Disconnected - reconnecting...'}
         </p>
       </div>
@@ -142,23 +142,23 @@ export default function Jobs() {
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="glass-panel rounded-lg p-4">
-          <p className="text-sm text-gray-400">Total Jobs</p>
-          <p className="text-2xl font-bold text-white mt-1">{jobs?.length || 0}</p>
+          <p className="text-sm text-muted-foreground">Total Jobs</p>
+          <p className="text-2xl font-bold text-foreground mt-1">{jobs?.length || 0}</p>
         </div>
         <div className="glass-panel rounded-lg p-4">
-          <p className="text-sm text-gray-400">Running</p>
+          <p className="text-sm text-muted-foreground">Running</p>
           <p className="text-2xl font-bold text-blue-400 mt-1">
             {jobs?.filter((j) => j.status === 'running').length || 0}
           </p>
         </div>
         <div className="glass-panel rounded-lg p-4">
-          <p className="text-sm text-gray-400">Completed</p>
+          <p className="text-sm text-muted-foreground">Completed</p>
           <p className="text-2xl font-bold text-green-400 mt-1">
             {jobs?.filter((j) => j.status === 'completed').length || 0}
           </p>
         </div>
         <div className="glass-panel rounded-lg p-4">
-          <p className="text-sm text-gray-400">Failed</p>
+          <p className="text-sm text-muted-foreground">Failed</p>
           <p className="text-2xl font-bold text-red-400 mt-1">
             {jobs?.filter((j) => j.status === 'failed').length || 0}
           </p>
@@ -172,7 +172,7 @@ export default function Jobs() {
         </div>
       ) : sortedJobs.length === 0 ? (
         <div className="glass-panel rounded-lg p-8">
-          <p className="text-center text-gray-400">
+          <p className="text-center text-muted-foreground">
             No jobs yet. Create your first job to get started!
           </p>
         </div>
@@ -186,10 +186,10 @@ export default function Jobs() {
                   {getStatusIcon(job.status)}
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-white">Job #{job.id.slice(0, 8)}</h3>
+                      <h3 className="font-semibold text-foreground">Job #{job.id.slice(0, 8)}</h3>
                       {getStatusBadge(job.status)}
                     </div>
-                    <p className="text-sm text-gray-400 mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                       Created {new Date(job.created_at).toLocaleString()}
                     </p>
                   </div>
@@ -211,10 +211,10 @@ export default function Jobs() {
               {job.status === 'running' && (
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Progress</span>
-                    <span className="text-white font-medium">{job.progress}%</span>
+                    <span className="text-muted-foreground">Progress</span>
+                    <span className="text-foreground font-medium">{job.progress}%</span>
                   </div>
-                  <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
+                  <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300"
                       style={{ width: `${job.progress}%` }}
@@ -224,19 +224,19 @@ export default function Jobs() {
               )}
 
               {/* Job Stats */}
-              <div className="grid grid-cols-3 gap-4 pt-2 border-t border-gray-800">
+              <div className="grid grid-cols-3 gap-4 pt-2 border-t border-border">
                 <div>
-                  <p className="text-xs text-gray-400">Total</p>
-                  <p className="text-lg font-semibold text-white">{job.count}</p>
+                  <p className="text-xs text-muted-foreground">Total</p>
+                  <p className="text-lg font-semibold text-foreground">{job.count}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400">Created</p>
+                  <p className="text-xs text-muted-foreground">Created</p>
                   <p className="text-lg font-semibold text-green-400">
                     {job.created_count || 0}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400">Failed</p>
+                  <p className="text-xs text-muted-foreground">Failed</p>
                   <p className="text-lg font-semibold text-red-400">
                     {job.failed_count || 0}
                   </p>
@@ -271,9 +271,9 @@ export default function Jobs() {
               id="testMode"
               checked={testMode}
               onChange={(e) => setTestMode(e.target.checked)}
-              className="w-4 h-4 rounded border-gray-700 bg-gray-800 text-blue-600 focus:ring-2 focus:ring-blue-500"
+              className="w-4 h-4 rounded border-border bg-secondary text-primary focus:ring-2 focus:ring-ring"
             />
-            <label htmlFor="testMode" className="text-sm text-gray-300">
+            <label htmlFor="testMode" className="text-sm text-foreground">
               Test mode (don't create real accounts)
             </label>
           </div>

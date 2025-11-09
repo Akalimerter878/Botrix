@@ -86,15 +86,15 @@ export default function Settings() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-white">Settings</h1>
-        <p className="text-gray-400 mt-2">Configure your application settings</p>
+        <h1 className="text-3xl font-bold text-foreground">Settings</h1>
+        <p className="text-muted-foreground mt-2">Configure your application settings</p>
       </div>
 
       {/* API Configuration */}
       <div className="glass-panel rounded-lg p-6 space-y-4">
         <div className="flex items-center gap-2">
           <Key className="w-5 h-5 text-blue-400" />
-          <h2 className="text-xl font-semibold text-white">API Configuration</h2>
+          <h2 className="text-xl font-semibold text-foreground">API Configuration</h2>
         </div>
         
         <div className="space-y-4">
@@ -136,12 +136,12 @@ export default function Settings() {
       <div className="glass-panel rounded-lg p-6 space-y-4">
         <div className="flex items-center gap-2">
           <Upload className="w-5 h-5 text-green-400" />
-          <h2 className="text-xl font-semibold text-white">Email Pool</h2>
+          <h2 className="text-xl font-semibold text-foreground">Email Pool</h2>
         </div>
         
         <div className="space-y-4">
           <div>
-            <p className="text-sm text-gray-400 mb-2">
+            <p className="text-sm text-muted-foreground mb-2">
               Upload a .txt file with email:password pairs (one per line)
             </p>
             <FileUpload onFileSelect={handleFileSelect} accept=".txt" />
@@ -149,15 +149,15 @@ export default function Settings() {
           
           {emailPreview.length > 0 && (
             <div className="space-y-2">
-              <h3 className="text-sm font-medium text-white">Preview:</h3>
-              <div className="bg-gray-800 rounded-lg p-3 font-mono text-xs space-y-1">
+              <h3 className="text-sm font-medium text-foreground">Preview:</h3>
+              <div className="bg-secondary rounded-lg p-3 font-mono text-xs space-y-1">
                 {emailPreview.map((line, i) => (
-                  <div key={i} className="text-gray-300">
+                  <div key={i} className="text-foreground">
                     {line.split(':')[0]}:***
                   </div>
                 ))}
                 {emailFile && (
-                  <div className="text-gray-500 mt-2">
+                  <div className="text-muted-foreground mt-2">
                     ... and more
                   </div>
                 )}
@@ -182,19 +182,19 @@ export default function Settings() {
           ) : (
             <Sun className="w-5 h-5 text-yellow-400" />
           )}
-          <h2 className="text-xl font-semibold text-white">Theme</h2>
+          <h2 className="text-xl font-semibold text-foreground">Theme</h2>
         </div>
         
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-medium text-white">Dark Mode</p>
-            <p className="text-sm text-gray-400">Toggle between light and dark theme</p>
+            <p className="font-medium text-foreground">Dark Mode</p>
+            <p className="text-sm text-muted-foreground">Toggle between light and dark theme</p>
           </div>
           <button
             onClick={toggleTheme}
             className={`
               relative inline-flex h-8 w-14 items-center rounded-full transition-colors
-              ${theme === 'dark' ? 'bg-blue-600' : 'bg-gray-600'}
+              ${theme === 'dark' ? 'bg-primary' : 'bg-secondary'}
             `}
           >
             <span
@@ -210,26 +210,26 @@ export default function Settings() {
       {/* System Information */}
       <div className="glass-panel rounded-lg p-6 space-y-4">
         <div className="flex items-center gap-2">
-          <Info className="w-5 h-5 text-gray-400" />
-          <h2 className="text-xl font-semibold text-white">System Information</h2>
+          <Info className="w-5 h-5 text-muted-foreground" />
+          <h2 className="text-xl font-semibold text-foreground">System Information</h2>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-gray-800/50 rounded-lg p-4">
-            <p className="text-sm text-gray-400">Total Accounts</p>
-            <p className="text-2xl font-bold text-white mt-1">
+          <div className="bg-secondary/50 rounded-lg p-4">
+            <p className="text-sm text-muted-foreground">Total Accounts</p>
+            <p className="text-2xl font-bold text-foreground mt-1">
               {stats?.total_accounts || 0}
             </p>
           </div>
-          <div className="bg-gray-800/50 rounded-lg p-4">
-            <p className="text-sm text-gray-400">Success Rate</p>
+          <div className="bg-secondary/50 rounded-lg p-4">
+            <p className="text-sm text-muted-foreground">Success Rate</p>
             <p className="text-2xl font-bold text-green-400 mt-1">
               {stats?.success_rate ? `${stats.success_rate}%` : '0%'}
             </p>
           </div>
-          <div className="bg-gray-800/50 rounded-lg p-4">
-            <p className="text-sm text-gray-400">Last Sync</p>
-            <p className="text-sm font-medium text-white mt-1">
+          <div className="bg-secondary/50 rounded-lg p-4">
+            <p className="text-sm text-muted-foreground">Last Sync</p>
+            <p className="text-sm font-medium text-foreground mt-1">
               {new Date().toLocaleString()}
             </p>
           </div>

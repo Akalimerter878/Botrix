@@ -80,8 +80,8 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-          <p className="text-gray-400 mt-2">Welcome back! Here's your overview</p>
+          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground mt-2">Welcome back! Here's your overview</p>
         </div>
         <Button onClick={() => setIsCreateModalOpen(true)}>
           <Plus className="w-4 h-4" />
@@ -119,31 +119,31 @@ export default function Dashboard() {
 
       {/* Activity Chart */}
       <div className="glass-panel rounded-lg p-6">
-        <h2 className="text-xl font-semibold text-white mb-4">24-Hour Activity</h2>
+        <h2 className="text-xl font-semibold text-foreground mb-4">24-Hour Activity</h2>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
               <XAxis
                 dataKey="time"
-                stroke="#9CA3AF"
-                tick={{ fill: '#9CA3AF' }}
+                className="stroke-muted-foreground"
+                tick={{ fill: 'hsl(var(--muted-foreground))' }}
               />
-              <YAxis stroke="#9CA3AF" tick={{ fill: '#9CA3AF' }} />
+              <YAxis className="stroke-muted-foreground" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#1F2937',
-                  border: '1px solid #374151',
+                  backgroundColor: 'hsl(var(--popover))',
+                  border: '1px solid hsl(var(--border))',
                   borderRadius: '8px',
-                  color: '#F3F4F6',
+                  color: 'hsl(var(--foreground))',
                 }}
               />
               <Line
                 type="monotone"
                 dataKey="accounts"
-                stroke="#3B82F6"
+                stroke="hsl(var(--primary))"
                 strokeWidth={2}
-                dot={{ fill: '#3B82F6', r: 4 }}
+                dot={{ fill: 'hsl(var(--primary))', r: 4 }}
                 activeDot={{ r: 6 }}
               />
             </LineChart>
@@ -155,21 +155,21 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Jobs */}
         <div className="glass-panel rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-white mb-4">Recent Jobs</h2>
+          <h2 className="text-xl font-semibold text-foreground mb-4">Recent Jobs</h2>
           {recentJobs.length === 0 ? (
-            <p className="text-gray-400 text-center py-8">No jobs yet</p>
+            <p className="text-muted-foreground text-center py-8">No jobs yet</p>
           ) : (
             <div className="space-y-3">
               {recentJobs.map((job) => (
                 <div
                   key={job.id}
-                  className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg hover:bg-gray-800 transition-colors"
+                  className="flex items-center justify-between p-3 bg-card rounded-lg hover:bg-card-hover transition-colors"
                 >
                   <div>
-                    <p className="font-medium text-white">
+                    <p className="font-medium text-foreground">
                       Job #{job.id.slice(0, 8)}
                     </p>
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm text-muted-foreground">
                       {job.created_count || 0} / {job.count} accounts
                     </p>
                   </div>
@@ -194,7 +194,7 @@ export default function Dashboard() {
 
         {/* Quick Actions */}
         <div className="glass-panel rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
+          <h2 className="text-xl font-semibold text-foreground mb-4">Quick Actions</h2>
           <div className="space-y-3">
             <button
               onClick={() => setIsCreateModalOpen(true)}
@@ -211,26 +211,26 @@ export default function Dashboard() {
 
             <a
               href="/accounts"
-              className="block w-full p-4 bg-gray-800/50 rounded-lg hover:bg-gray-800 transition-colors"
+              className="block w-full p-4 bg-card rounded-lg hover:bg-card-hover transition-colors"
             >
               <div className="flex items-center gap-3">
-                <Users className="w-5 h-5 text-gray-400" />
+                <Users className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <p className="font-medium text-white">View Accounts</p>
-                  <p className="text-sm text-gray-400">Manage your accounts</p>
+                  <p className="font-medium text-foreground">View Accounts</p>
+                  <p className="text-sm text-muted-foreground">Manage your accounts</p>
                 </div>
               </div>
             </a>
 
             <a
               href="/jobs"
-              className="block w-full p-4 bg-gray-800/50 rounded-lg hover:bg-gray-800 transition-colors"
+              className="block w-full p-4 bg-card rounded-lg hover:bg-card-hover transition-colors"
             >
               <div className="flex items-center gap-3">
-                <Briefcase className="w-5 h-5 text-gray-400" />
+                <Briefcase className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <p className="font-medium text-white">Monitor Jobs</p>
-                  <p className="text-sm text-gray-400">Check job status</p>
+                  <p className="font-medium text-foreground">Monitor Jobs</p>
+                  <p className="text-sm text-muted-foreground">Check job status</p>
                 </div>
               </div>
             </a>
@@ -256,8 +256,8 @@ export default function Dashboard() {
             max="100"
           />
 
-          <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-            <p className="text-sm text-blue-400">
+          <div className="p-3 bg-primary/10 border border-primary/30 rounded-lg">
+            <p className="text-sm text-primary">
               This will create {accountCount} TikTok accounts using the email pool.
             </p>
           </div>

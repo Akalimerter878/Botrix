@@ -80,7 +80,7 @@ export default function Accounts() {
       key: 'username',
       header: 'Username',
       render: (account: Account) => (
-        <div className="text-gray-400">@{account.username}</div>
+        <div className="text-muted-foreground">@{account.username}</div>
       ),
     },
     {
@@ -104,7 +104,7 @@ export default function Accounts() {
       key: 'created_at',
       header: 'Created At',
       render: (account: Account) => (
-        <div className="text-gray-400">
+        <div className="text-muted-foreground">
           {new Date(account.created_at).toLocaleDateString()}
         </div>
       ),
@@ -118,9 +118,9 @@ export default function Accounts() {
             e.stopPropagation();
             setDeleteModal({ isOpen: true, account });
           }}
-          className="p-2 hover:bg-red-500/20 rounded-lg transition-colors group"
+          className="p-2 hover:bg-destructive/20 rounded-lg transition-colors group"
         >
-          <Trash2 className="w-4 h-4 text-gray-400 group-hover:text-red-400" />
+          <Trash2 className="w-4 h-4 text-muted-foreground group-hover:text-destructive" />
         </button>
       ),
     },
@@ -130,15 +130,15 @@ export default function Accounts() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-white">Accounts</h1>
-        <p className="text-gray-400 mt-2">Manage your TikTok accounts</p>
+        <h1 className="text-3xl font-bold text-foreground">Accounts</h1>
+        <p className="text-muted-foreground mt-2">Manage your TikTok accounts</p>
       </div>
 
       {/* Actions Bar */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
               placeholder="Search by email or username..."
               value={searchTerm}
@@ -162,20 +162,20 @@ export default function Accounts() {
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="glass-panel rounded-lg p-4">
-          <p className="text-sm text-gray-400">Total Accounts</p>
-          <p className="text-2xl font-bold text-white mt-1">
+          <p className="text-sm text-muted-foreground">Total Accounts</p>
+          <p className="text-2xl font-bold text-foreground mt-1">
             {accounts?.length || 0}
           </p>
         </div>
         <div className="glass-panel rounded-lg p-4">
-          <p className="text-sm text-gray-400">Active</p>
+          <p className="text-sm text-muted-foreground">Active</p>
           <p className="text-2xl font-bold text-green-400 mt-1">
             {accounts?.filter((a) => a.status === 'active').length || 0}
           </p>
         </div>
         <div className="glass-panel rounded-lg p-4">
-          <p className="text-sm text-gray-400">Filtered Results</p>
-          <p className="text-2xl font-bold text-blue-400 mt-1">
+          <p className="text-sm text-muted-foreground">Filtered Results</p>
+          <p className="text-2xl font-bold text-primary mt-1">
             {filteredAccounts.length}
           </p>
         </div>
@@ -197,9 +197,9 @@ export default function Accounts() {
         size="sm"
       >
         <div className="space-y-4">
-          <p className="text-gray-300">
+          <p className="text-foreground">
             Are you sure you want to delete the account{' '}
-            <span className="font-semibold text-white">
+            <span className="font-semibold text-foreground">
               {deleteModal.account?.email}
             </span>
             ? This action cannot be undone.
