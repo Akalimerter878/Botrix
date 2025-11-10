@@ -32,30 +32,6 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void) {
     }
   }, []);
 
-  const scheduleReconnect = useCallback(() => {
-    clearReconnectTimeout();
-
-    if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-      console.error('[WebSocket] Max reconnection attempts reached');
-      toast.error('WebSocket connection failed. Please refresh the page.');
-      setConnectionState('disconnected');
-      return;
-    }
-
-    setConnectionState('reconnecting');
-    const delay = reconnectDelayRef.current;
-
-    console.log(`[WebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS})`);
-
-    reconnectTimeoutRef.current = setTimeout(() => {
-      setReconnectAttempts((prev) => prev + 1);
-      connect();
-    }, delay);
-
-    // Exponential backoff with max delay
-    reconnectDelayRef.current = Math.min(delay * 2, MAX_RECONNECT_DELAY);
-  }, [reconnectAttempts]);
-
   const connect = useCallback(() => {
     // Close existing connection if any
     if (wsRef.current) {
@@ -95,28 +71,43 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void) {
       ws.onclose = (event) => {
         console.log('[WebSocket] Connection closed', event.code, event.reason);
         setConnectionState('disconnected');
+        wsRef.current = null;
+        
+        // Don't reconnect if closed normally (code 1000 or 1001)
+        if (event.code === 1000 || event.code === 1001) {
+          console.log('[WebSocket] Normal closure, not reconnecting');
+          return;
+        }
         
         // Only show toast if connection was previously established
         if (hasShownConnectedToastRef.current && reconnectAttempts === 0) {
           toast.error('WebSocket disconnected');
         }
 
-        // Schedule reconnection
-        scheduleReconnect();
+        // Schedule reconnection only if not at max attempts
+        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+          setReconnectAttempts((prev) => prev + 1);
+          const delay = reconnectDelayRef.current;
+          console.log(`[WebSocket] Will reconnect in ${delay}ms`);
+          
+          reconnectTimeoutRef.current = setTimeout(() => {
+            connect();
+          }, delay);
+          
+          reconnectDelayRef.current = Math.min(delay * 2, MAX_RECONNECT_DELAY);
+        }
       };
 
       ws.onerror = (error) => {
         console.error('[WebSocket] Error occurred:', error);
-        setConnectionState('disconnected');
       };
 
       wsRef.current = ws;
     } catch (error) {
       console.error('[WebSocket] Failed to create connection:', error);
       setConnectionState('disconnected');
-      scheduleReconnect();
     }
-  }, [reconnectAttempts, scheduleReconnect, clearReconnectTimeout]);
+  }, [clearReconnectTimeout, reconnectAttempts]);
 
   // Manual reconnect function
   const reconnect = useCallback(() => {
@@ -128,17 +119,20 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void) {
   }, [connect, clearReconnectTimeout]);
 
   useEffect(() => {
+    // Connect only once on mount
     connect();
 
     return () => {
       console.log('[WebSocket] Cleaning up connection');
       clearReconnectTimeout();
       if (wsRef.current) {
-        wsRef.current.close();
+        // Send normal close code to prevent reconnection
+        wsRef.current.close(1000, 'Component unmounting');
         wsRef.current = null;
       }
     };
-  }, [connect, clearReconnectTimeout]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount/unmount
 
   const send = useCallback((message: any) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
