@@ -32,15 +32,32 @@ export interface Job {
   priority?: number
 }
 
+export interface AccountStats {
+  total: number
+  active: number
+  banned: number
+  suspended: number
+  created_today: number
+}
+
+export interface JobStats {
+  total: number
+  pending: number
+  running: number
+  completed: number
+  failed: number
+  cancelled: number
+}
+
 export interface Stats {
+  success: boolean
   total_accounts: number
-  active_accounts: number
-  failed_accounts: number
-  total_jobs: number
-  active_jobs: number
-  completed_jobs: number
   success_rate: number
-  today_accounts: number
+  failure_rate: number
+  account_stats: AccountStats
+  job_stats: JobStats
+  queue_stats: Record<string, any>
+  hotmail_pool_remaining: number
 }
 
 export interface WebSocketMessage {

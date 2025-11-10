@@ -4,9 +4,6 @@ import type {
   Job,
   Stats,
   CreateAccountRequest,
-  AccountsResponse,
-  JobsResponse,
-  PaginationParams,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
@@ -103,6 +100,14 @@ export const api = {
     },
     ping: async () => {
       const response = await apiClient.get('/ping');
+      return response.data;
+    },
+  },
+
+  // Stats
+  stats: {
+    get: async (): Promise<Stats> => {
+      const response = await apiClient.get<Stats>('/api/stats');
       return response.data;
     },
   },
