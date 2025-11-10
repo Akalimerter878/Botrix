@@ -72,12 +72,12 @@ export const api = {
   // Jobs
   jobs: {
     list: async (): Promise<Job[]> => {
-      const response = await apiClient.get<Job[]>('/api/jobs');
-      return response.data;
+      const response = await apiClient.get<{ success: boolean; jobs: Job[] }>('/api/jobs');
+      return response.data.jobs || [];
     },
     get: async (id: string): Promise<Job> => {
-      const response = await apiClient.get<Job>(`/api/jobs/${id}`);
-      return response.data;
+      const response = await apiClient.get<{ success: boolean; job: Job }>(`/api/jobs/${id}`);
+      return response.data.job;
     },
     cancel: async (id: string): Promise<void> => {
       await apiClient.post(`/api/jobs/${id}/cancel`);
@@ -87,11 +87,11 @@ export const api = {
       return response.data;
     },
     generate: async (count: number, test?: boolean): Promise<Job> => {
-      const response = await apiClient.post<Job>('/api/accounts/generate', {
+      const response = await apiClient.post<{ success: boolean; job: Job; message?: string }>('/api/accounts/generate', {
         count,
-        test: test || false,
+        test_mode: test || false,
       });
-      return response.data;
+      return response.data.job;
     },
   },
 

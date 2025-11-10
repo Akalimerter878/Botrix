@@ -17,9 +17,10 @@ export default function Jobs() {
   const queryClient = useQueryClient();
 
   // Fetch jobs
-  const { data: jobs, isLoading, refetch } = useQuery({
+  const { data: jobs, isLoading, error, refetch } = useQuery({
     queryKey: ['jobs'],
     queryFn: api.jobs.list,
+    refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
   });
 
   // WebSocket for real-time updates
@@ -28,10 +29,15 @@ export default function Jobs() {
       // Refetch jobs when we get an update
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       
+      const jobId = message.job_id?.slice(0, 8) || 'Unknown';
+      
       if (message.status === 'completed') {
-        toast.success(`Job ${message.job_id} completed!`);
+        toast.success(`Job #${jobId} completed!`);
       } else if (message.status === 'failed') {
-        toast.error(`Job ${message.job_id} failed`);
+        toast.error(`Job #${jobId} failed`);
+      } else if (message.status === 'running') {
+        // Optional: Show when job starts
+        console.log(`Job #${jobId} is now running`);
       }
     }
   });
@@ -47,8 +53,10 @@ export default function Jobs() {
       setAccountCount('10');
       setTestMode(false);
     },
-    onError: () => {
-      toast.error('Failed to create job');
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to create job';
+      toast.error(errorMessage);
+      console.error('Create job error:', error);
     },
   });
 
@@ -59,8 +67,10 @@ export default function Jobs() {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       toast.success('Job cancelled');
     },
-    onError: () => {
-      toast.error('Failed to cancel job');
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to cancel job';
+      toast.error(errorMessage);
+      console.error('Cancel job error:', error);
     },
   });
 
@@ -170,6 +180,20 @@ export default function Jobs() {
         <div className="glass-panel rounded-lg p-8 flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
         </div>
+      ) : error ? (
+        <div className="glass-panel rounded-lg p-8">
+          <div className="flex flex-col items-center gap-4">
+            <AlertCircle className="w-12 h-12 text-red-400" />
+            <p className="text-center text-foreground font-semibold">Failed to load jobs</p>
+            <p className="text-center text-muted-foreground text-sm">
+              {error instanceof Error ? error.message : 'Unable to connect to the backend API'}
+            </p>
+            <Button onClick={() => refetch()} variant="secondary">
+              <RefreshCw className="w-4 h-4" />
+              Try Again
+            </Button>
+          </div>
+        </div>
       ) : sortedJobs.length === 0 ? (
         <div className="glass-panel rounded-lg p-8">
           <p className="text-center text-muted-foreground">
@@ -232,13 +256,13 @@ export default function Jobs() {
                 <div>
                   <p className="text-xs text-muted-foreground">Created</p>
                   <p className="text-lg font-semibold text-green-400">
-                    {job.created_count || 0}
+                    {job.successful || 0}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Failed</p>
                   <p className="text-lg font-semibold text-red-400">
-                    {job.failed_count || 0}
+                    {job.failed || 0}
                   </p>
                 </div>
               </div>

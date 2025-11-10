@@ -15,12 +15,15 @@ export interface Job {
   status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
   count: number
   progress: number
-  created_count: number
-  failed_count: number
+  successful: number
+  failed: number
   created_at: string
   updated_at: string
+  started_at?: string
   completed_at?: string
-  error?: string
+  error_msg?: string
+  test_mode?: boolean
+  priority?: number
 }
 
 export interface Stats {
