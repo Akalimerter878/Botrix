@@ -8,7 +8,7 @@ import (
 	"botrix-backend/config"
 	"botrix-backend/models"
 
-	"gorm.io/driver/sqlite"
+	"github.com/glebarez/sqlite" // Pure Go SQLite driver based on modernc.org/sqlite
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -37,6 +37,7 @@ func NewDatabase(cfg *config.Config) (*Database, error) {
 	// Connect based on driver type
 	switch cfg.Database.Driver {
 	case "sqlite":
+		// Use glebarez/sqlite (pure Go, no CGO required, based on modernc.org/sqlite)
 		db, err = gorm.Open(sqlite.Open(cfg.Database.DSN), gormConfig)
 		if err != nil {
 			return nil, fmt.Errorf("failed to connect to SQLite database: %w", err)
