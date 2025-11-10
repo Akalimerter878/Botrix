@@ -69,7 +69,10 @@ class Config:
             return
 
         try:
-            settings = cls.fetch_from_backend()
+            response_data = cls.fetch_from_backend()
+            
+            # Extract settings from the data field
+            settings = response_data.get("data", {})
             
             # Update class variables with backend settings
             cls.RAPIDAPI_KEY = settings.get("rapidapi_key", "")
