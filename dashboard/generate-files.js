@@ -299,10 +299,10 @@ Object.entries(files).forEach(([filePath, content]) => {
   
   // Write file
   fs.writeFileSync(fullPath, content);
-  console.log(\`✓ Created: \${filePath}\`);
+  console.log(`✓ Created: ${filePath}`);
 });
 
-console.log('\\n✅ All files generated successfully!');
-console.log('\\nNext steps:');
+console.log('\n✅ All files generated successfully!');
+console.log('\nNext steps:');
 console.log('1. npm run dev');
 console.log('2. Open http://localhost:3000');

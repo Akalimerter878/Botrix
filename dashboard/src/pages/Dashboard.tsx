@@ -40,7 +40,7 @@ export default function Dashboard() {
 
   // Create job mutation
   const createJobMutation = useMutation({
-    mutationFn: (count: number) => api.jobs.generate(count, false),
+    mutationFn: (count: number) => api.jobs.generate(count),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       toast.success('Job created successfully');

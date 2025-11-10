@@ -17,7 +17,7 @@ export default function Settings() {
   // Fetch stats
   const { data: stats } = useQuery({
     queryKey: ['stats'],
-    queryFn: api.accounts.stats,
+    queryFn: api.stats.get,
   });
 
   const handleSaveApiKey = () => {
