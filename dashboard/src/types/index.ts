@@ -1,13 +1,19 @@
 // Type definitions for Botrix Dashboard
 
 export interface Account {
-  id: string
+  id: number
   email: string
   username: string
   password: string
-  status: 'active' | 'failed' | 'banned'
+  email_password: string
+  status: 'active' | 'banned' | 'suspended'
   created_at: string
   updated_at: string
+  job_id?: string
+  birthdate?: string
+  kick_account_id?: string
+  kick_data?: string
+  notes?: string
 }
 
 export interface Job {

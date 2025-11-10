@@ -170,7 +170,7 @@ export default function Dashboard() {
                       Job #{job.id.slice(0, 8)}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {job.created_count || 0} / {job.count} accounts
+                      {job.successful || 0} / {job.count} accounts
                     </p>
                   </div>
                   <Badge

@@ -45,22 +45,22 @@ export const api = {
   // Accounts
   accounts: {
     list: async (): Promise<Account[]> => {
-      const response = await apiClient.get<Account[]>('/api/accounts');
-      return response.data;
+      const response = await apiClient.get<{ success: boolean; data: Account[] }>('/api/accounts');
+      return response.data.data || [];
     },
-    get: async (id: string): Promise<Account> => {
-      const response = await apiClient.get<Account>(`/api/accounts/${id}`);
-      return response.data;
+    get: async (id: number): Promise<Account> => {
+      const response = await apiClient.get<{ success: boolean; account: Account }>(`/api/accounts/${id}`);
+      return response.data.account;
     },
     create: async (data: CreateAccountRequest): Promise<Job> => {
       const response = await apiClient.post<Job>('/api/accounts', data);
       return response.data;
     },
-    update: async (id: string, data: Partial<Account>): Promise<Account> => {
-      const response = await apiClient.put<Account>(`/api/accounts/${id}`, data);
-      return response.data;
+    update: async (id: number, data: Partial<Account>): Promise<Account> => {
+      const response = await apiClient.put<{ success: boolean; account: Account }>(`/api/accounts/${id}`, data);
+      return response.data.account;
     },
-    delete: async (id: string): Promise<void> => {
+    delete: async (id: number): Promise<void> => {
       await apiClient.delete(`/api/accounts/${id}`);
     },
     stats: async (): Promise<Stats> => {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Download, Trash2, RefreshCw } from 'lucide-react';
+import { Search, Download, Trash2, RefreshCw, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '../lib/api';
 import { downloadCSV } from '../lib/utils';
@@ -19,21 +19,24 @@ export default function Accounts() {
   const queryClient = useQueryClient();
 
   // Fetch accounts
-  const { data: accounts, isLoading, refetch } = useQuery({
+  const { data: accounts, isLoading, error, refetch } = useQuery({
     queryKey: ['accounts'],
     queryFn: api.accounts.list,
+    refetchInterval: 10000, // Refetch every 10 seconds
   });
 
   // Delete account mutation
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.accounts.delete(id),
+    mutationFn: (id: number) => api.accounts.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       toast.success('Account deleted successfully');
       setDeleteModal({ isOpen: false });
     },
-    onError: () => {
-      toast.error('Failed to delete account');
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to delete account';
+      toast.error(errorMessage);
+      console.error('Delete account error:', error);
     },
   });
 
@@ -52,14 +55,17 @@ export default function Accounts() {
     }
 
     const csvData = filteredAccounts.map((account) => ({
+      ID: account.id,
       Email: account.email,
       Username: account.username,
       Status: account.status,
+      'Job ID': account.job_id || '',
       'Created At': new Date(account.created_at).toLocaleString(),
+      'Updated At': new Date(account.updated_at).toLocaleString(),
     }));
 
-    downloadCSV(csvData, 'accounts.csv');
-    toast.success('Accounts exported successfully');
+    downloadCSV(csvData, 'kick-accounts.csv');
+    toast.success(`Exported ${filteredAccounts.length} accounts successfully`);
   };
 
   const handleDelete = () => {
@@ -93,10 +99,10 @@ export default function Accounts() {
               ? 'success'
               : account.status === 'banned'
               ? 'danger'
-              : 'warning'
+              : 'warning' // suspended
           }
         >
-          {account.status}
+          {account.status.charAt(0).toUpperCase() + account.status.slice(1)}
         </Badge>
       ),
     },
@@ -160,7 +166,7 @@ export default function Accounts() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="glass-panel rounded-lg p-4">
           <p className="text-sm text-muted-foreground">Total Accounts</p>
           <p className="text-2xl font-bold text-foreground mt-1">
@@ -174,20 +180,42 @@ export default function Accounts() {
           </p>
         </div>
         <div className="glass-panel rounded-lg p-4">
-          <p className="text-sm text-muted-foreground">Filtered Results</p>
-          <p className="text-2xl font-bold text-primary mt-1">
-            {filteredAccounts.length}
+          <p className="text-sm text-muted-foreground">Banned</p>
+          <p className="text-2xl font-bold text-red-400 mt-1">
+            {accounts?.filter((a) => a.status === 'banned').length || 0}
+          </p>
+        </div>
+        <div className="glass-panel rounded-lg p-4">
+          <p className="text-sm text-muted-foreground">Suspended</p>
+          <p className="text-2xl font-bold text-yellow-400 mt-1">
+            {accounts?.filter((a) => a.status === 'suspended').length || 0}
           </p>
         </div>
       </div>
 
       {/* Table */}
-      <Table
-        columns={columns}
-        data={filteredAccounts}
-        isLoading={isLoading}
-        emptyMessage="No accounts found. Create your first account from the Dashboard."
-      />
+      {error ? (
+        <div className="glass-panel rounded-lg p-8">
+          <div className="flex flex-col items-center gap-4">
+            <AlertCircle className="w-12 h-12 text-red-400" />
+            <p className="text-center text-foreground font-semibold">Failed to load accounts</p>
+            <p className="text-center text-muted-foreground text-sm">
+              {error instanceof Error ? error.message : 'Unable to connect to the backend API'}
+            </p>
+            <Button onClick={() => refetch()} variant="secondary">
+              <RefreshCw className="w-4 h-4" />
+              Try Again
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Table
+          columns={columns}
+          data={filteredAccounts}
+          isLoading={isLoading}
+          emptyMessage="No accounts found. Create your first account from the Jobs page."
+        />
+      )}
 
       {/* Delete Confirmation Modal */}
       <Modal
