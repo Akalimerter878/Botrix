@@ -8,6 +8,7 @@ import Accounts from './pages/Accounts'
 import Jobs from './pages/Jobs'
 import Settings from './pages/Settings'
 import { useTheme } from './hooks/useTheme'
+import { WebSocketProvider } from './contexts/WebSocketContext'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,16 +32,18 @@ function App() {
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <Layout>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/accounts" element={<Accounts />} />
-              <Route path="/jobs" element={<Jobs />} />
-              <Route path="/settings" element={<Settings />} />
-            </Routes>
-          </Layout>
-        </BrowserRouter>
+        <WebSocketProvider>
+          <BrowserRouter>
+            <Layout>
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/accounts" element={<Accounts />} />
+                <Route path="/jobs" element={<Jobs />} />
+                <Route path="/settings" element={<Settings />} />
+              </Routes>
+            </Layout>
+          </BrowserRouter>
+        </WebSocketProvider>
         <Toaster
           position="top-right"
           toastOptions={{

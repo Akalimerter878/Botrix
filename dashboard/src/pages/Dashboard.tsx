@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Users, Briefcase, TrendingUp, Activity, Plus } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { api } from '../lib/api';
-import { useWebSocket } from '../hooks/useWebSocket';
+import { useWebSocketContext } from '../contexts/WebSocketContext';
 import StatsCard from '@/components/StatsCard';
 import { Button } from '@/components/Button';
 import { Badge } from '../components/Badge';
@@ -29,14 +29,14 @@ export default function Dashboard() {
     refetchInterval: 5000,
   });
 
-  // WebSocket for real-time updates
-  useWebSocket((message) => {
-    if (message.type === 'job_update') {
-      // Refresh stats and jobs when job updates occur
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
-      queryClient.invalidateQueries({ queryKey: ['jobs'] });
-    }
-  });
+  // Get WebSocket status from context
+  const { lastMessage } = useWebSocketContext();
+
+  // Handle WebSocket messages
+  if (lastMessage && lastMessage.type === 'job_update') {
+    queryClient.invalidateQueries({ queryKey: ['stats'] });
+    queryClient.invalidateQueries({ queryKey: ['jobs'] });
+  }
 
   // Create job mutation
   const createJobMutation = useMutation({

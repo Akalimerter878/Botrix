@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, RefreshCw, XCircle, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -7,7 +7,7 @@ import { Button } from '../components/Button';
 import { Badge } from '../components/Badge';
 import { Modal } from '../components/Modal';
 import { Input } from '../components/Input';
-import { useWebSocket } from '../hooks/useWebSocket';
+import { useWebSocketContext } from '../contexts/WebSocketContext';
 
 export default function Jobs() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -22,24 +22,27 @@ export default function Jobs() {
     refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
   });
 
-  // WebSocket for real-time updates
-  const { connectionState, reconnectAttempts, reconnect } = useWebSocket((message) => {
-    if (message.type === 'job_update') {
+  // Get WebSocket status from context
+  const { connectionState, reconnectAttempts, reconnect, lastMessage } = useWebSocketContext();
+
+  // Handle WebSocket messages
+  useEffect(() => {
+    if (lastMessage && lastMessage.type === 'job_update') {
       // Refetch jobs when we get an update
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       
-      const jobId = message.job_id?.slice(0, 8) || 'Unknown';
+      const jobId = lastMessage.job_id?.slice(0, 8) || 'Unknown';
       
-      if (message.status === 'completed') {
+      if (lastMessage.status === 'completed') {
         toast.success(`Job #${jobId} completed!`);
-      } else if (message.status === 'failed') {
+      } else if (lastMessage.status === 'failed') {
         toast.error(`Job #${jobId} failed`);
-      } else if (message.status === 'running') {
+      } else if (lastMessage.status === 'running') {
         // Optional: Show when job starts
         console.log(`Job #${jobId} is now running`);
       }
     }
-  });
+  }, [lastMessage, queryClient]);
 
   // Create job mutation
   const createJobMutation = useMutation({
