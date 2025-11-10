@@ -45,28 +45,36 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void) {
   const startPingInterval = useCallback(() => {
     clearPingInterval();
     
-    // Send ping every 30 seconds to keep connection alive
+    // Send ping every 25 seconds to keep connection alive (backend pings every 30s)
     pingIntervalRef.current = setInterval(() => {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         try {
-          wsRef.current.send(JSON.stringify({ type: 'ping' }));
-          console.log('[WebSocket] Sent keepalive ping');
+          wsRef.current.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
+          console.log('[WebSocket] Sent periodic keepalive ping');
         } catch (e) {
           console.error('[WebSocket] Failed to send ping:', e);
         }
       }
-    }, 30000); // 30 seconds
+    }, 25000); // 25 seconds (before backend timeout)
   }, [clearPingInterval]);
 
   const connect = useCallback(() => {
-    // Don't connect if component is unmounted
+    // Don't connect if component is unmounted or already connecting
     if (!isMountedRef.current) {
+      console.log('[WebSocket] Skipping connect - component unmounted');
+      return;
+    }
+
+    // Prevent rapid reconnections - debounce
+    if (wsRef.current && (wsRef.current.readyState === WebSocket.CONNECTING || wsRef.current.readyState === WebSocket.OPEN)) {
+      console.log('[WebSocket] Skipping connect - already connected/connecting');
       return;
     }
 
     // Close existing connection if any
     if (wsRef.current) {
-      wsRef.current.close();
+      console.log('[WebSocket] Closing existing connection before reconnect');
+      wsRef.current.close(1000, 'Reconnecting');
       wsRef.current = null;
     }
 
@@ -89,13 +97,17 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void) {
         }
         hasShownConnectedToastRef.current = true;
 
-        // Send an initial ping to keep connection alive
-        try {
-          ws.send(JSON.stringify({ type: 'ping' }));
-          console.log('[WebSocket] Sent initial ping');
-        } catch (e) {
-          console.error('[WebSocket] Failed to send initial ping:', e);
-        }
+        // Wait a bit before sending initial ping (let server setup connection)
+        setTimeout(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            try {
+              ws.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
+              console.log('[WebSocket] Sent initial keepalive ping');
+            } catch (e) {
+              console.error('[WebSocket] Failed to send initial ping:', e);
+            }
+          }
+        }, 1000); // Wait 1 second before first ping
 
         // Start sending periodic pings
         startPingInterval();
@@ -115,7 +127,7 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void) {
       ws.onclose = (event) => {
         console.log('[WebSocket] Connection closed');
         console.log('[WebSocket] Close code:', event.code);
-        console.log('[WebSocket] Close reason:', event.reason);
+        console.log('[WebSocket] Close reason:', event.reason || '(no reason provided)');
         console.log('[WebSocket] Was clean close:', event.wasClean);
         console.log('[WebSocket] isMounted:', isMountedRef.current);
         
@@ -127,8 +139,13 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void) {
         
         // Don't reconnect if closed normally or component unmounted
         if (event.code === 1000 || event.code === 1001 || !isMountedRef.current) {
-          console.log('[WebSocket] Normal closure or unmounted, not reconnecting');
+          console.log('[WebSocket] Normal closure (code 1000/1001) or unmounted, not reconnecting');
           return;
+        }
+        
+        // If close code is 1006 (abnormal), log it specially
+        if (event.code === 1006) {
+          console.warn('[WebSocket] Abnormal closure (1006) - connection dropped unexpectedly');
         }
         
         // Only show toast if connection was previously established
@@ -143,10 +160,11 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void) {
           setReconnectAttempts(newAttempts);
           
           const delay = reconnectDelayRef.current;
-          console.log(`[WebSocket] Will reconnect in ${delay}ms (attempt ${newAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+          console.log(`[WebSocket] Scheduling reconnection in ${delay}ms (attempt ${newAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
           setConnectionState('reconnecting');
           
           reconnectTimeoutRef.current = setTimeout(() => {
+            console.log('[WebSocket] Attempting reconnection...');
             connect();
           }, delay);
           

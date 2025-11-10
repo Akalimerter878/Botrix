@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -10,36 +9,56 @@ import (
 	"botrix-backend/config"
 	"botrix-backend/handlers"
 	"botrix-backend/services"
+	"botrix-backend/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 	"github.com/gofiber/websocket/v2"
 )
 
+var logger *utils.Logger
+
 func main() {
+	// Initialize logger
+	var err error
+	logger, err = utils.InitFileLogger("./logs", utils.INFO)
+	if err != nil {
+		utils.Fatal("Failed to initialize logger: %v", err)
+	}
+
+	// Redirect standard logger
+	utils.RedirectStandardLogger()
+
 	// Load configuration
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		log.Fatalf("Failed to load configuration: %v", err)
+		logger.Fatal("Failed to load configuration: %v", err)
 	}
 
-	log.Printf("Starting Botrix Backend API...")
-	log.Printf("Environment: %s", cfg.Server.Environment)
+	logger.WithComponent("STARTUP").Info("Starting Botrix Backend API...")
+	logger.WithComponent("STARTUP").Info("Environment: %s", cfg.Server.Environment)
+
+	// Set log level based on environment
+	if cfg.IsDevelopment() {
+		logger.SetLevel(utils.DEBUG)
+		logger.WithComponent("STARTUP").Info("Debug logging enabled (development mode)")
+	}
 
 	// Initialize database
+	dbLogger := logger.WithComponent("DATABASE")
 	db, err := services.NewDatabase(cfg)
 	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
+		dbLogger.Fatal("Failed to initialize database: %v", err)
 	}
 	defer db.Close()
 
 	// Initialize queue (Redis)
+	queueLogger := logger.WithComponent("QUEUE")
 	queue, err := services.NewQueueService(cfg)
 	if err != nil {
-		log.Fatalf("Failed to initialize queue: %v", err)
+		queueLogger.Fatal("Failed to initialize queue: %v", err)
 	}
 	defer queue.Close()
 
@@ -54,18 +73,13 @@ func main() {
 	})
 
 	// Middleware
-	app.Use(recover.New())
+	app.Use(recover.New(recover.Config{
+		EnableStackTrace: cfg.IsDevelopment(),
+	}))
 	app.Use(requestid.New())
 
-	// Enhanced logging middleware (development and production)
-	app.Use(handlers.EnhancedLogger())
-
-	// Fallback logger middleware (for backward compatibility)
-	if cfg.IsDevelopment() {
-		app.Use(logger.New(logger.Config{
-			Format: "[${time}] ${status} - ${method} ${path} (${latency})\n",
-		}))
-	}
+	// Enhanced logging middleware
+	app.Use(handlers.EnhancedLoggerWithLogger(logger.WithComponent("API")))
 
 	// CORS middleware
 	app.Use(cors.New(cors.Config{
@@ -79,10 +93,10 @@ func main() {
 	// Initialize handlers
 	healthHandler := handlers.NewHealthHandler()
 	accountsHandler := handlers.NewAccountsHandler(db, queue)
-	wsHandler := handlers.NewWebSocketHandler(queue.GetRedisClient())
+	wsHandler := handlers.NewWebSocketHandlerWithLogger(queue.GetRedisClient(), logger.WithComponent("WEBSOCKET"))
 
 	// Initialize middleware
-	rateLimiter := handlers.NewRateLimiter(10, 1*time.Minute) // 10 requests per minute
+	rateLimiter := handlers.NewRateLimiterWithLogger(10, 1*time.Minute, logger.WithComponent("RATELIMIT"))
 	validator := handlers.RequestValidator()
 
 	// Health check routes (no rate limiting)
@@ -156,21 +170,21 @@ func main() {
 		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 		<-sigChan
 
-		log.Println("Shutting down server...")
+		logger.WithComponent("SHUTDOWN").Warn("Received shutdown signal...")
 
 		if err := app.Shutdown(); err != nil {
-			log.Printf("Error during shutdown: %v", err)
+			logger.WithComponent("SHUTDOWN").Error("Error during shutdown: %v", err)
 		}
 
-		log.Println("Server shutdown complete")
+		logger.WithComponent("SHUTDOWN").Info("Server shutdown complete")
 	}()
 
 	// Start server
 	addr := cfg.GetServerAddress()
-	log.Printf("Server starting on %s", addr)
+	logger.WithComponent("SERVER").Info("Server starting on %s", addr)
 
 	if err := app.Listen(addr); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+		logger.WithComponent("SERVER").Fatal("Failed to start server: %v", err)
 	}
 }
 
@@ -181,6 +195,13 @@ func customErrorHandler(c *fiber.Ctx, err error) error {
 	if e, ok := err.(*fiber.Error); ok {
 		code = e.Code
 	}
+
+	logger.WithComponent("ERROR").WithFields(map[string]interface{}{
+		"path":   c.Path(),
+		"method": c.Method(),
+		"ip":     c.IP(),
+		"error":  err.Error(),
+	}).Error("Request error occurred")
 
 	return c.Status(code).JSON(fiber.Map{
 		"error":   true,
@@ -197,14 +218,12 @@ func getAllowedOrigins(cfg *config.Config) string {
 	}
 
 	// In production, specify exact origins from environment or config
-	// TODO: Set ALLOWED_ORIGINS environment variable in production
 	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
 	if allowedOrigins != "" {
 		return allowedOrigins
 	}
 
 	// Fallback to default production domain
-	// IMPORTANT: Update this with your actual production domain
-	log.Println("[CORS] Warning: Using default production origins. Set ALLOWED_ORIGINS environment variable.")
+	logger.WithComponent("CORS").Warn("Using default production origins. Set ALLOWED_ORIGINS environment variable.")
 	return "https://yourdomain.com,https://www.yourdomain.com"
 }

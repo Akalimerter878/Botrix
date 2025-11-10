@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Test - Botrix</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .status {
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .connected { background: #22c55e; }
+        .disconnected { background: #ef4444; }
+        .connecting { background: #f59e0b; }
+        
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background: #3b82f6;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background: #2563eb; }
+        button:disabled { background: #6b7280; cursor: not-allowed; }
+        
+        #log {
+            background: #000;
+            padding: 15px;
+            border-radius: 5px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            margin-top: 20px;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #3b82f6;
+            padding-left: 10px;
+        }
+        .log-info { border-color: #3b82f6; color: #3b82f6; }
+        .log-success { border-color: #22c55e; color: #22c55e; }
+        .log-error { border-color: #ef4444; color: #ef4444; }
+        .log-warn { border-color: #f59e0b; color: #f59e0b; }
+    </style>
+</head>
+<body>
+    <h1>🔌 WebSocket Connection Test</h1>
+    
+    <div id="status" class="status disconnected">
+        ⚫ Disconnected
+    </div>
+    
+    <div>
+        <button id="connectBtn" onclick="connect()">Connect</button>
+        <button id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+        <button id="pingBtn" onclick="sendPing()" disabled>Send Ping</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+    
+    <div id="log"></div>
+    
+    <script>
+        let ws = null;
+        let pingInterval = null;
+        const WS_URL = 'ws://localhost:8080/ws';
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            const timestamp = new Date().toLocaleTimeString('tr-TR', { hour12: false, fractionalSecondDigits: 3 });
+            entry.textContent = `[${timestamp}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function updateStatus(status) {
+            const statusDiv = document.getElementById('status');
+            const connectBtn = document.getElementById('connectBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+            const pingBtn = document.getElementById('pingBtn');
+            
+            if (status === 'connected') {
+                statusDiv.textContent = '🟢 Connected';
+                statusDiv.className = 'status connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                pingBtn.disabled = false;
+            } else if (status === 'connecting') {
+                statusDiv.textContent = '🟡 Connecting...';
+                statusDiv.className = 'status connecting';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = true;
+                pingBtn.disabled = true;
+            } else {
+                statusDiv.textContent = '⚫ Disconnected';
+                statusDiv.className = 'status disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                pingBtn.disabled = true;
+            }
+        }
+        
+        function startPingInterval() {
+            if (pingInterval) clearInterval(pingInterval);
+            
+            // Send ping every 25 seconds
+            pingInterval = setInterval(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    sendPing();
+                }
+            }, 25000);
+            
+            log('Auto-ping enabled (every 25 seconds)', 'info');
+        }
+        
+        function stopPingInterval() {
+            if (pingInterval) {
+                clearInterval(pingInterval);
+                pingInterval = null;
+                log('Auto-ping disabled', 'info');
+            }
+        }
+        
+        function connect() {
+            if (ws) {
+                log('Already connected or connecting', 'warn');
+                return;
+            }
+            
+            updateStatus('connecting');
+            log(`Connecting to ${WS_URL}...`, 'info');
+            
+            try {
+                ws = new WebSocket(WS_URL);
+                
+                ws.onopen = () => {
+                    log('✅ WebSocket connected!', 'success');
+                    updateStatus('connected');
+                    
+                    // Wait 1 second before first ping
+                    setTimeout(() => {
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            sendPing();
+                            startPingInterval();
+                        }
+                    }, 1000);
+                };
+                
+                ws.onmessage = (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+                        log(`📨 Received: ${JSON.stringify(message)}`, 'success');
+                    } catch (e) {
+                        log(`📨 Received (raw): ${event.data}`, 'info');
+                    }
+                };
+                
+                ws.onclose = (event) => {
+                    log(`❌ Connection closed (code: ${event.code}, reason: "${event.reason || 'none'}", clean: ${event.wasClean})`, 'error');
+                    updateStatus('disconnected');
+                    stopPingInterval();
+                    ws = null;
+                };
+                
+                ws.onerror = (error) => {
+                    log(`❌ WebSocket error: ${error}`, 'error');
+                };
+                
+            } catch (error) {
+                log(`❌ Failed to create WebSocket: ${error}`, 'error');
+                updateStatus('disconnected');
+            }
+        }
+        
+        function disconnect() {
+            if (ws) {
+                log('Disconnecting...', 'info');
+                stopPingInterval();
+                ws.close(1000, 'User initiated disconnect');
+                ws = null;
+            }
+        }
+        
+        function sendPing() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const ping = { type: 'ping', timestamp: Date.now() };
+                ws.send(JSON.stringify(ping));
+                log(`📤 Sent ping: ${JSON.stringify(ping)}`, 'info');
+            } else {
+                log('Cannot send ping - not connected', 'warn');
+            }
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        // Auto-connect on load
+        window.onload = () => {
+            log('Test page loaded. Click "Connect" to start.', 'info');
+        };
+    </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-import { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, ReactNode, useMemo } from 'react';
 import { useWebSocket, ConnectionState } from '../hooks/useWebSocket';
 import type { WebSocketMessage } from '@/types';
 
@@ -21,8 +21,18 @@ interface WebSocketProviderProps {
 export function WebSocketProvider({ children, onMessage }: WebSocketProviderProps) {
   const websocket = useWebSocket(onMessage);
 
+  // Memoize the context value to prevent unnecessary re-renders
+  const value = useMemo(() => websocket, [
+    websocket.connectionState,
+    websocket.isConnected,
+    websocket.reconnectAttempts,
+    websocket.lastMessage,
+    websocket.send,
+    websocket.reconnect
+  ]);
+
   return (
-    <WebSocketContext.Provider value={websocket}>
+    <WebSocketContext.Provider value={value}>
       {children}
     </WebSocketContext.Provider>
   );

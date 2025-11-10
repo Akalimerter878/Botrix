@@ -5,22 +5,29 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"sync"
 	"time"
+
+	"botrix-backend/utils"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-// EnhancedLogger middleware provides detailed request/response logging
+// EnhancedLogger middleware provides detailed request/response logging (legacy)
 func EnhancedLogger() fiber.Handler {
+	logger := utils.GetDefaultLogger().WithComponent("API")
+	return EnhancedLoggerWithLogger(logger)
+}
+
+// EnhancedLoggerWithLogger middleware provides detailed request/response logging with custom logger
+func EnhancedLoggerWithLogger(logger *utils.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		// Start timer
 		start := time.Now()
 		requestID := c.Locals("requestid")
 
 		// Log request
-		logRequest(c, requestID)
+		logRequestWithLogger(c, requestID, logger)
 
 		// Process request
 		err := c.Next()
@@ -29,31 +36,29 @@ func EnhancedLogger() fiber.Handler {
 		latency := time.Since(start)
 
 		// Log response
-		logResponse(c, requestID, latency, err)
+		logResponseWithLogger(c, requestID, latency, err, logger)
 
 		return err
 	}
 }
 
-// logRequest logs incoming request details
-func logRequest(c *fiber.Ctx, requestID interface{}) {
-	timestamp := time.Now().Format("2006-01-02 15:04:05.000")
-
-	log.Printf("[API %s] → %s %s %s",
-		timestamp,
-		c.Method(),
-		c.Path(),
-		c.IP(),
-	)
-
-	// Log request ID if available
-	if requestID != nil {
-		log.Printf("[API %s]   Request-ID: %v", timestamp, requestID)
+// logRequestWithLogger logs incoming request details
+func logRequestWithLogger(c *fiber.Ctx, requestID interface{}, logger *utils.Logger) {
+	fields := map[string]interface{}{
+		"method": c.Method(),
+		"path":   c.Path(),
+		"ip":     c.IP(),
 	}
+
+	if requestID != nil {
+		fields["request_id"] = requestID
+	}
+
+	logger.WithFields(fields).Info("→ Incoming request")
 
 	// Log query parameters
 	if len(c.Queries()) > 0 {
-		log.Printf("[API %s]   Query: %v", timestamp, c.Queries())
+		logger.WithField("query", c.Queries()).Debug("Request query parameters")
 	}
 
 	// Log request body for POST/PUT/PATCH (but redact sensitive data)
@@ -65,44 +70,47 @@ func logRequest(c *fiber.Ctx, requestID interface{}) {
 			if err := json.Unmarshal(bodyBytes, &jsonBody); err == nil {
 				// Redact sensitive fields
 				redactSensitiveFields(jsonBody)
-				prettyJSON, _ := json.MarshalIndent(jsonBody, "         ", "  ")
-				log.Printf("[API %s]   Body: %s", timestamp, string(prettyJSON))
+				logger.WithField("body", jsonBody).Debug("Request body")
 			}
 		}
 	}
 }
 
-// logResponse logs response details
-func logResponse(c *fiber.Ctx, requestID interface{}, latency time.Duration, err error) {
-	timestamp := time.Now().Format("2006-01-02 15:04:05.000")
+// logResponseWithLogger logs response details
+func logResponseWithLogger(c *fiber.Ctx, requestID interface{}, latency time.Duration, err error, logger *utils.Logger) {
 	statusCode := c.Response().StatusCode()
 
-	// Determine log level based on status code
-	statusEmoji := "✓"
-	if statusCode >= 400 && statusCode < 500 {
-		statusEmoji = "⚠"
-	} else if statusCode >= 500 {
-		statusEmoji = "✗"
+	fields := map[string]interface{}{
+		"method":  c.Method(),
+		"path":    c.Path(),
+		"status":  statusCode,
+		"latency": latency.String(),
 	}
 
-	log.Printf("[API %s] %s %d %s %s (%s)",
-		timestamp,
-		statusEmoji,
-		statusCode,
-		c.Method(),
-		c.Path(),
-		latency,
-	)
+	if requestID != nil {
+		fields["request_id"] = requestID
+	}
 
 	// Log error if present
 	if err != nil {
-		log.Printf("[API %s]   Error: %v", timestamp, err)
+		fields["error"] = err.Error()
 	}
 
 	// Log response size
 	responseSize := len(c.Response().Body())
 	if responseSize > 0 {
-		log.Printf("[API %s]   Response Size: %s", timestamp, formatBytes(responseSize))
+		fields["response_size"] = formatBytes(responseSize)
+	}
+
+	// Determine log level based on status code
+	logWithFields := logger.WithFields(fields)
+
+	if statusCode >= 500 {
+		logWithFields.Error("✗ Request completed with server error")
+	} else if statusCode >= 400 {
+		logWithFields.Warn("⚠ Request completed with client error")
+	} else {
+		logWithFields.Info("✓ Request completed successfully")
 	}
 }
 
@@ -175,6 +183,7 @@ type RateLimiter struct {
 	mu       sync.RWMutex
 	limit    int
 	window   time.Duration
+	logger   *utils.Logger
 }
 
 type clientRequests struct {
@@ -182,14 +191,18 @@ type clientRequests struct {
 	resetTime time.Time
 }
 
-// NewRateLimiter creates a new rate limiter
-// limit: maximum requests per window
-// window: time window duration (e.g., 1 minute)
+// NewRateLimiter creates a new rate limiter (legacy)
 func NewRateLimiter(limit int, window time.Duration) *RateLimiter {
+	return NewRateLimiterWithLogger(limit, window, utils.GetDefaultLogger().WithComponent("RATELIMIT"))
+}
+
+// NewRateLimiterWithLogger creates a new rate limiter with custom logger
+func NewRateLimiterWithLogger(limit int, window time.Duration, logger *utils.Logger) *RateLimiter {
 	rl := &RateLimiter{
 		requests: make(map[string]*clientRequests),
 		limit:    limit,
 		window:   window,
+		logger:   logger,
 	}
 
 	// Cleanup goroutine to remove expired entries
@@ -224,7 +237,13 @@ func (rl *RateLimiter) Middleware() fiber.Handler {
 				resetTime: now.Add(rl.window),
 			}
 
-			log.Printf("[RateLimiter] New window for %s: 1/%d requests", clientIP, rl.limit)
+			rl.logger.WithFields(map[string]interface{}{
+				"ip":     clientIP,
+				"count":  1,
+				"limit":  rl.limit,
+				"window": rl.window.String(),
+			}).Debug("New rate limit window")
+
 			return c.Next()
 		}
 
@@ -232,8 +251,12 @@ func (rl *RateLimiter) Middleware() fiber.Handler {
 		if client.count >= rl.limit {
 			retryAfter := int(time.Until(client.resetTime).Seconds())
 
-			log.Printf("[RateLimiter] Rate limit exceeded for %s: %d/%d requests",
-				clientIP, client.count, rl.limit)
+			rl.logger.WithFields(map[string]interface{}{
+				"ip":          clientIP,
+				"count":       client.count,
+				"limit":       rl.limit,
+				"retry_after": retryAfter,
+			}).Warn("Rate limit exceeded")
 
 			c.Set("Retry-After", string(rune(retryAfter)))
 			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
@@ -246,8 +269,11 @@ func (rl *RateLimiter) Middleware() fiber.Handler {
 
 		// Increment count
 		client.count++
-		log.Printf("[RateLimiter] Request from %s: %d/%d requests",
-			clientIP, client.count, rl.limit)
+		rl.logger.WithFields(map[string]interface{}{
+			"ip":    clientIP,
+			"count": client.count,
+			"limit": rl.limit,
+		}).Debug("Rate limit check passed")
 
 		return c.Next()
 	}
@@ -259,13 +285,20 @@ func (rl *RateLimiter) cleanup() {
 	defer rl.mu.Unlock()
 
 	now := time.Now()
+	removed := 0
 	for ip, client := range rl.requests {
 		if now.After(client.resetTime) {
 			delete(rl.requests, ip)
+			removed++
 		}
 	}
 
-	log.Printf("[RateLimiter] Cleanup completed, %d clients in memory", len(rl.requests))
+	if removed > 0 {
+		rl.logger.WithFields(map[string]interface{}{
+			"removed":   removed,
+			"remaining": len(rl.requests),
+		}).Debug("Rate limiter cleanup completed")
+	}
 }
 
 // GetStats returns current rate limiter statistics
