@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Users, Briefcase, TrendingUp, Activity, Plus } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -15,6 +15,7 @@ export default function Dashboard() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [accountCount, setAccountCount] = useState('10');
   const queryClient = useQueryClient();
+  const lastMessageIdRef = useRef<string | null>(null);
 
   // Fetch statistics from backend
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -32,11 +33,18 @@ export default function Dashboard() {
   // Get WebSocket status from context
   const { lastMessage } = useWebSocketContext();
 
-  // Handle WebSocket messages
-  if (lastMessage && lastMessage.type === 'job_update') {
-    queryClient.invalidateQueries({ queryKey: ['stats'] });
-    queryClient.invalidateQueries({ queryKey: ['jobs'] });
-  }
+  // Handle WebSocket messages with useEffect
+  useEffect(() => {
+    if (lastMessage && lastMessage.type === 'job_update') {
+      // Prevent duplicate processing
+      const messageId = (lastMessage.job_id || '') + (lastMessage.status || '');
+      if (lastMessageIdRef.current !== messageId) {
+        lastMessageIdRef.current = messageId;
+        queryClient.invalidateQueries({ queryKey: ['stats'] });
+        queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      }
+    }
+  }, [lastMessage, queryClient]);
 
   // Create job mutation
   const createJobMutation = useMutation({
