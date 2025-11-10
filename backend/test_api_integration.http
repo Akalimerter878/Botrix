@@ -1,0 +1,192 @@
+### API Integration Test File
+### Use REST Client extension in VS Code or similar tool
+### Base URL: http://localhost:8080
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+
+### Health Check
+GET {{baseUrl}}/health
+Accept: application/json
+
+###
+
+### Health Ping
+GET {{baseUrl}}/health/ping
+Accept: application/json
+
+###
+
+### Health Ready
+GET {{baseUrl}}/health/ready
+Accept: application/json
+
+###
+
+### List All Accounts
+GET {{baseUrl}}/api/accounts
+Accept: application/json
+
+###
+
+### List Accounts with Pagination
+GET {{baseUrl}}/api/accounts?limit=10&offset=0
+Accept: application/json
+
+###
+
+### Get Specific Account (replace with valid ID)
+GET {{baseUrl}}/api/accounts/1
+Accept: application/json
+
+###
+
+### Create Account Job
+POST {{baseUrl}}/api/accounts
+Content-Type: {{contentType}}
+
+{
+  "count": 5
+}
+
+###
+
+### Generate Accounts (Multiple Jobs)
+POST {{baseUrl}}/api/accounts/generate
+Content-Type: {{contentType}}
+
+{
+  "count": 3,
+  "priority": "normal"
+}
+
+###
+
+### Update Account (replace with valid ID)
+PUT {{baseUrl}}/api/accounts/1
+Content-Type: {{contentType}}
+
+{
+  "status": "active",
+  "notes": "Updated via API"
+}
+
+###
+
+### Delete Account (replace with valid ID)
+DELETE {{baseUrl}}/api/accounts/1
+
+###
+
+### List All Jobs
+GET {{baseUrl}}/api/jobs
+Accept: application/json
+
+###
+
+### List Jobs with Pagination
+GET {{baseUrl}}/api/jobs?limit=20&offset=0
+Accept: application/json
+
+###
+
+### Get Specific Job (replace with valid UUID)
+GET {{baseUrl}}/api/jobs/00000000-0000-0000-0000-000000000000
+Accept: application/json
+
+###
+
+### Cancel Job (replace with valid UUID)
+POST {{baseUrl}}/api/jobs/00000000-0000-0000-0000-000000000000/cancel
+Content-Type: {{contentType}}
+
+###
+
+### Get Job Statistics
+GET {{baseUrl}}/api/jobs/stats
+Accept: application/json
+
+###
+
+### Get Overall Statistics
+GET {{baseUrl}}/api/stats
+Accept: application/json
+
+###
+
+### WebSocket Stats
+GET {{baseUrl}}/ws/stats
+Accept: application/json
+
+###
+
+### Test Rate Limiting (send multiple requests quickly)
+POST {{baseUrl}}/api/accounts/generate
+Content-Type: {{contentType}}
+
+{
+  "count": 1,
+  "priority": "normal"
+}
+
+###
+
+### Test Invalid JSON
+POST {{baseUrl}}/api/accounts
+Content-Type: {{contentType}}
+
+{
+  "invalid": "data"
+  "missing": "comma"
+}
+
+###
+
+### Test Missing Required Fields
+POST {{baseUrl}}/api/accounts/generate
+Content-Type: {{contentType}}
+
+{
+  "priority": "normal"
+}
+
+###
+
+### Test Invalid Count (too high)
+POST {{baseUrl}}/api/accounts/generate
+Content-Type: {{contentType}}
+
+{
+  "count": 150,
+  "priority": "normal"
+}
+
+###
+
+### Test Invalid Count (too low)
+POST {{baseUrl}}/api/accounts/generate
+Content-Type: {{contentType}}
+
+{
+  "count": 0,
+  "priority": "normal"
+}
+
+###
+
+### Test Invalid Priority
+POST {{baseUrl}}/api/accounts/generate
+Content-Type: {{contentType}}
+
+{
+  "count": 5,
+  "priority": "invalid"
+}
+
+###
+
+### Test 404 - Non-existent Endpoint
+GET {{baseUrl}}/api/nonexistent
+Accept: application/json
+
+###

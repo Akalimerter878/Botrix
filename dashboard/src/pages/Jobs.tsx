@@ -43,17 +43,17 @@ export default function Jobs() {
 
   // Create job mutation
   const createJobMutation = useMutation({
-    mutationFn: ({ count, test }: { count: number; test: boolean }) =>
-      api.jobs.generate(count, test),
-    onSuccess: () => {
+    mutationFn: ({ count }: { count: number }) =>
+      api.jobs.generate(count),
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      toast.success('Job created successfully');
+      toast.success(data.message || 'Job created successfully');
       setIsCreateModalOpen(false);
       setAccountCount('10');
       setTestMode(false);
     },
     onError: (error: any) => {
-      const errorMessage = error.response?.data?.error || error.message || 'Failed to create job';
+      const errorMessage = error.message || 'Failed to create job';
       toast.error(errorMessage);
       console.error('Create job error:', error);
     },
@@ -67,7 +67,7 @@ export default function Jobs() {
       toast.success('Job cancelled');
     },
     onError: (error: any) => {
-      const errorMessage = error.response?.data?.error || error.message || 'Failed to cancel job';
+      const errorMessage = error.message || 'Failed to cancel job';
       toast.error(errorMessage);
       console.error('Cancel job error:', error);
     },
@@ -79,7 +79,7 @@ export default function Jobs() {
       toast.error('Please enter a number between 1 and 100');
       return;
     }
-    createJobMutation.mutate({ count, test: testMode });
+    createJobMutation.mutate({ count });
   };
 
   const getStatusBadge = (status: string) => {

@@ -57,7 +57,10 @@ func main() {
 	app.Use(recover.New())
 	app.Use(requestid.New())
 
-	// Logger middleware
+	// Enhanced logging middleware (development and production)
+	app.Use(handlers.EnhancedLogger())
+
+	// Fallback logger middleware (for backward compatibility)
 	if cfg.IsDevelopment() {
 		app.Use(logger.New(logger.Config{
 			Format: "[${time}] ${status} - ${method} ${path} (${latency})\n",
@@ -189,9 +192,19 @@ func customErrorHandler(c *fiber.Ctx, err error) error {
 // getAllowedOrigins returns CORS allowed origins based on environment
 func getAllowedOrigins(cfg *config.Config) string {
 	if cfg.IsDevelopment() {
-		return "*" // Allow all in development
+		// Allow common development origins
+		return "http://localhost:3000,http://localhost:5173,http://localhost:5174,http://127.0.0.1:3000,http://127.0.0.1:5173,http://127.0.0.1:5174"
 	}
 
-	// In production, specify exact origins
+	// In production, specify exact origins from environment or config
+	// TODO: Set ALLOWED_ORIGINS environment variable in production
+	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
+	if allowedOrigins != "" {
+		return allowedOrigins
+	}
+
+	// Fallback to default production domain
+	// IMPORTANT: Update this with your actual production domain
+	log.Println("[CORS] Warning: Using default production origins. Set ALLOWED_ORIGINS environment variable.")
 	return "https://yourdomain.com,https://www.yourdomain.com"
 }
