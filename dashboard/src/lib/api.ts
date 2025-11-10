@@ -288,6 +288,39 @@ export const api = {
       }
     },
   },
+
+  // Settings
+  settings: {
+    get: async (): Promise<any> => {
+      try {
+        const response = await apiClient.get<{ success: boolean; data: any }>('/api/settings');
+        
+        if (!response.data.success) {
+          throw new ApiError('Failed to fetch settings');
+        }
+        
+        return response.data.data || {};
+      } catch (error) {
+        if (error instanceof ApiError) throw error;
+        throw new ApiError('Failed to fetch settings', 0, error);
+      }
+    },
+    
+    save: async (settings: any): Promise<any> => {
+      try {
+        const response = await apiClient.post<{ success: boolean; data: any; message?: string }>('/api/settings', settings);
+        
+        if (!response.data.success) {
+          throw new ApiError(response.data.message || 'Failed to save settings');
+        }
+        
+        return response.data.data || {};
+      } catch (error) {
+        if (error instanceof ApiError) throw error;
+        throw new ApiError('Failed to save settings', 0, error);
+      }
+    },
+  },
 };
 
 export default apiClient;

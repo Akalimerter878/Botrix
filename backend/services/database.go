@@ -79,6 +79,7 @@ func NewDatabase(cfg *config.Config) (*Database, error) {
 	if err := db.AutoMigrate(
 		&models.Account{},
 		&models.Job{},
+		&models.Setting{},
 	); err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
 	}
@@ -357,4 +358,70 @@ func (d *Database) UpdateJobProgress(id string, progress, successful, failed int
 			"successful": successful,
 			"failed":     failed,
 		}).Error
+}
+
+// Settings operations
+
+// GetSettings retrieves the application settings from the database
+// If no settings exist, it creates a default one
+func (d *Database) GetSettings() (*models.Setting, error) {
+	var setting models.Setting
+
+	// Try to get the first settings record
+	err := d.db.First(&setting).Error
+
+	if err == gorm.ErrRecordNotFound {
+		// No settings found, create default settings
+		setting = models.Setting{
+			IMAPServer:  "imap.gmail.com",
+			IMAPPort:    993,
+			SMTPServer:  "smtp.gmail.com",
+			SMTPPort:    587,
+			WorkerCount: 1,
+			RetryCount:  3,
+			Timeout:     30,
+		}
+
+		if err := d.db.Create(&setting).Error; err != nil {
+			return nil, fmt.Errorf("failed to create default settings: %w", err)
+		}
+
+		log.Println("Created default settings")
+		return &setting, nil
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get settings: %w", err)
+	}
+
+	return &setting, nil
+}
+
+// SaveSettings updates the application settings in the database
+func (d *Database) SaveSettings(setting *models.Setting) error {
+	// Check if settings exist
+	var existingSetting models.Setting
+	err := d.db.First(&existingSetting).Error
+
+	if err == gorm.ErrRecordNotFound {
+		// No settings exist, create new
+		if err := d.db.Create(setting).Error; err != nil {
+			return fmt.Errorf("failed to create settings: %w", err)
+		}
+		log.Println("Settings created successfully")
+		return nil
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to check existing settings: %w", err)
+	}
+
+	// Update existing settings
+	setting.ID = existingSetting.ID // Preserve the ID
+	if err := d.db.Save(setting).Error; err != nil {
+		return fmt.Errorf("failed to update settings: %w", err)
+	}
+
+	log.Println("Settings updated successfully")
+	return nil
 }

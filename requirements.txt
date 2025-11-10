@@ -1,6 +1,7 @@
 aiohttp
 python-dotenv
 redis
+requests
 pytest
 pytest-asyncio
 pytest-cov

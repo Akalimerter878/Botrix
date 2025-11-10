@@ -93,6 +93,7 @@ func main() {
 	// Initialize handlers
 	healthHandler := handlers.NewHealthHandler()
 	accountsHandler := handlers.NewAccountsHandler(db, queue)
+	settingsHandler := handlers.NewSettingsHandler(db)
 	wsHandler := handlers.NewWebSocketHandlerWithLogger(queue.GetRedisClient(), logger.WithComponent("WEBSOCKET"))
 
 	// Initialize middleware
@@ -138,6 +139,10 @@ func main() {
 	api.Get("/jobs/:jobId", accountsHandler.GetJob)
 	api.Post("/jobs/:id/cancel", accountsHandler.CancelJob)
 	api.Get("/jobs/stats", accountsHandler.GetJobStats)
+
+	// Settings routes
+	api.Get("/settings", settingsHandler.GetSettings)
+	api.Post("/settings", settingsHandler.SaveSettings)
 
 	// Root route
 	app.Get("/", func(c *fiber.Ctx) error {
