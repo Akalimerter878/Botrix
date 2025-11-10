@@ -16,9 +16,12 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void) {
   
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectDelayRef = useRef(INITIAL_RECONNECT_DELAY);
+  const reconnectAttemptsRef = useRef(0);
   const onMessageRef = useRef(onMessage);
   const hasShownConnectedToastRef = useRef(false);
+  const isMountedRef = useRef(true);
 
   // Keep onMessage ref updated
   useEffect(() => {
@@ -32,7 +35,35 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void) {
     }
   }, []);
 
+  const clearPingInterval = useCallback(() => {
+    if (pingIntervalRef.current) {
+      clearInterval(pingIntervalRef.current);
+      pingIntervalRef.current = null;
+    }
+  }, []);
+
+  const startPingInterval = useCallback(() => {
+    clearPingInterval();
+    
+    // Send ping every 30 seconds to keep connection alive
+    pingIntervalRef.current = setInterval(() => {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        try {
+          wsRef.current.send(JSON.stringify({ type: 'ping' }));
+          console.log('[WebSocket] Sent keepalive ping');
+        } catch (e) {
+          console.error('[WebSocket] Failed to send ping:', e);
+        }
+      }
+    }, 30000); // 30 seconds
+  }, [clearPingInterval]);
+
   const connect = useCallback(() => {
+    // Don't connect if component is unmounted
+    if (!isMountedRef.current) {
+      return;
+    }
+
     // Close existing connection if any
     if (wsRef.current) {
       wsRef.current.close();
@@ -45,8 +76,10 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void) {
 
       ws.onopen = () => {
         console.log('[WebSocket] Connection established');
+        console.log('[WebSocket] ReadyState:', ws.readyState);
         setConnectionState('connected');
         setReconnectAttempts(0);
+        reconnectAttemptsRef.current = 0;
         reconnectDelayRef.current = INITIAL_RECONNECT_DELAY;
         clearReconnectTimeout();
 
@@ -55,6 +88,17 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void) {
           toast.success('WebSocket reconnected');
         }
         hasShownConnectedToastRef.current = true;
+
+        // Send an initial ping to keep connection alive
+        try {
+          ws.send(JSON.stringify({ type: 'ping' }));
+          console.log('[WebSocket] Sent initial ping');
+        } catch (e) {
+          console.error('[WebSocket] Failed to send initial ping:', e);
+        }
+
+        // Start sending periodic pings
+        startPingInterval();
       };
 
       ws.onmessage = (event) => {
@@ -69,32 +113,47 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void) {
       };
 
       ws.onclose = (event) => {
-        console.log('[WebSocket] Connection closed', event.code, event.reason);
+        console.log('[WebSocket] Connection closed');
+        console.log('[WebSocket] Close code:', event.code);
+        console.log('[WebSocket] Close reason:', event.reason);
+        console.log('[WebSocket] Was clean close:', event.wasClean);
+        console.log('[WebSocket] isMounted:', isMountedRef.current);
+        
         setConnectionState('disconnected');
         wsRef.current = null;
         
-        // Don't reconnect if closed normally (code 1000 or 1001)
-        if (event.code === 1000 || event.code === 1001) {
-          console.log('[WebSocket] Normal closure, not reconnecting');
+        // Stop ping interval
+        clearPingInterval();
+        
+        // Don't reconnect if closed normally or component unmounted
+        if (event.code === 1000 || event.code === 1001 || !isMountedRef.current) {
+          console.log('[WebSocket] Normal closure or unmounted, not reconnecting');
           return;
         }
         
         // Only show toast if connection was previously established
-        if (hasShownConnectedToastRef.current && reconnectAttempts === 0) {
+        if (hasShownConnectedToastRef.current && reconnectAttemptsRef.current === 0) {
           toast.error('WebSocket disconnected');
         }
 
         // Schedule reconnection only if not at max attempts
-        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-          setReconnectAttempts((prev) => prev + 1);
+        if (reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
+          const newAttempts = reconnectAttemptsRef.current + 1;
+          reconnectAttemptsRef.current = newAttempts;
+          setReconnectAttempts(newAttempts);
+          
           const delay = reconnectDelayRef.current;
-          console.log(`[WebSocket] Will reconnect in ${delay}ms`);
+          console.log(`[WebSocket] Will reconnect in ${delay}ms (attempt ${newAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+          setConnectionState('reconnecting');
           
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
           }, delay);
           
           reconnectDelayRef.current = Math.min(delay * 2, MAX_RECONNECT_DELAY);
+        } else {
+          console.log('[WebSocket] Max reconnection attempts reached');
+          toast.error('Failed to reconnect to server');
         }
       };
 
@@ -107,24 +166,30 @@ export function useWebSocket(onMessage?: (message: WebSocketMessage) => void) {
       console.error('[WebSocket] Failed to create connection:', error);
       setConnectionState('disconnected');
     }
-  }, [clearReconnectTimeout, reconnectAttempts]);
+  }, [clearReconnectTimeout, startPingInterval, clearPingInterval]);
 
   // Manual reconnect function
   const reconnect = useCallback(() => {
     console.log('[WebSocket] Manual reconnection triggered');
     setReconnectAttempts(0);
+    reconnectAttemptsRef.current = 0;
     reconnectDelayRef.current = INITIAL_RECONNECT_DELAY;
     clearReconnectTimeout();
     connect();
   }, [connect, clearReconnectTimeout]);
 
   useEffect(() => {
+    // Mark component as mounted
+    isMountedRef.current = true;
+    
     // Connect only once on mount
     connect();
 
     return () => {
       console.log('[WebSocket] Cleaning up connection');
+      isMountedRef.current = false;
       clearReconnectTimeout();
+      clearPingInterval();
       if (wsRef.current) {
         // Send normal close code to prevent reconnection
         wsRef.current.close(1000, 'Component unmounting');
