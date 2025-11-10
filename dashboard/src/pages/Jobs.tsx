@@ -8,7 +8,6 @@ import { Badge } from '../components/Badge';
 import { Modal } from '../components/Modal';
 import { Input } from '../components/Input';
 import { useWebSocket } from '../hooks/useWebSocket';
-import type { Job } from '../types';
 
 export default function Jobs() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -24,7 +23,7 @@ export default function Jobs() {
   });
 
   // WebSocket for real-time updates
-  const { isConnected } = useWebSocket((message) => {
+  const { connectionState, reconnectAttempts, reconnect } = useWebSocket((message) => {
     if (message.type === 'job_update') {
       // Refetch jobs when we get an update
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
@@ -138,15 +137,42 @@ export default function Jobs() {
       </div>
 
       {/* WebSocket Status */}
-      <div className="glass-panel rounded-lg p-4 flex items-center gap-3">
-        <div
-          className={`w-3 h-3 rounded-full ${
-            isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'
-          }`}
-        />
-        <p className="text-sm text-foreground">
-          {isConnected ? 'Real-time updates active' : 'Disconnected - reconnecting...'}
-        </p>
+      <div className="glass-panel rounded-lg p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div
+            className={`w-3 h-3 rounded-full ${
+              connectionState === 'connected'
+                ? 'bg-green-500 animate-pulse'
+                : connectionState === 'reconnecting'
+                ? 'bg-yellow-500 animate-pulse'
+                : 'bg-red-500'
+            }`}
+          />
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              {connectionState === 'connected'
+                ? 'Real-time updates active'
+                : connectionState === 'reconnecting'
+                ? `Reconnecting... (attempt ${reconnectAttempts}/10)`
+                : 'Disconnected - reconnecting...'}
+            </p>
+            {connectionState !== 'connected' && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Real-time updates will resume when connection is restored
+              </p>
+            )}
+          </div>
+        </div>
+        {connectionState === 'disconnected' && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={reconnect}
+          >
+            <RefreshCw className="w-4 h-4" />
+            Retry Now
+          </Button>
+        )}
       </div>
 
       {/* Stats */}
